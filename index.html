@@ -1,0 +1,190 @@
+import { useState } from "react";
+
+const getNivel = (v) => {
+  if (v <= 20) return { label: "Muito insatisfeito", cor: "#e05555" };
+  if (v <= 40) return { label: "Insatisfeito", cor: "#e07b35" };
+  if (v <= 60) return { label: "Neutro", cor: "#e0b830" };
+  if (v <= 80) return { label: "Satisfeito", cor: "#5a9e6f" };
+  return { label: "Muito satisfeito", cor: "#2e7d52" };
+};
+
+export default function PesquisaSlider() {
+  const [valor, setValor] = useState(null);
+  const [arrastou, setArrastou] = useState(false);
+  const [enviado, setEnviado] = useState(false);
+  const [erro, setErro] = useState(false);
+
+  const nivel = valor !== null ? getNivel(valor) : null;
+
+  const enviar = async () => {
+    if (valor === null) { setErro(true); return; }
+    try {
+      await fetch("https://script.google.com/macros/s/AKfycbyYIOzpdQ8fpg26rSQ_g8cvbVwo0eyF0tavR4o8ugL1_Tb_t4dHxE_VLyeROzN0Yxwg/exec", {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ satisfacao: valor })
+      });
+    } catch (e) {
+      console.error("Erro ao enviar:", e);
+    }
+    setEnviado(true);
+  };
+
+  if (enviado) {
+    const n = getNivel(valor);
+    return (
+      <div style={{ minHeight: "100vh", background: "#f0f4f8", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", fontFamily: "'Segoe UI', sans-serif" }}>
+        <div style={{ background: "#fff", borderRadius: "16px", padding: "48px 40px", maxWidth: "480px", textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+          <div style={{ fontSize: "56px", marginBottom: "16px" }}>✅</div>
+          <h2 style={{ color: "#1a2e4a", fontSize: "24px", marginBottom: "12px" }}>Resposta enviada!</h2>
+          <div style={{ display: "inline-block", background: n.cor, color: "#fff", borderRadius: "24px", padding: "8px 24px", fontWeight: "700", fontSize: "20px", marginBottom: "16px" }}>
+            {valor}%
+          </div>
+          <p style={{ color: "#5a6a7a", lineHeight: "1.6", margin: 0 }}>
+            Obrigado pela sua participação. Sua resposta é anônima e será utilizada para promover melhorias no setor.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#f0f4f8", padding: "32px 16px", fontFamily: "'Segoe UI', sans-serif" }}>
+      <div style={{ maxWidth: "680px", margin: "0 auto" }}>
+
+        {/* Header */}
+        <div style={{ background: "#1a2e4a", borderRadius: "16px 16px 0 0", padding: "32px 36px", color: "#fff" }}>
+          <p style={{ fontSize: "12px", letterSpacing: "2px", textTransform: "uppercase", opacity: 0.7, margin: "0 0 8px" }}>Avaliação de Experiência</p>
+          <h1 style={{ fontSize: "22px", fontWeight: "700", margin: "0 0 10px" }}>Como foi sua experiência na loja?</h1>
+          <p style={{ fontSize: "14px", opacity: 0.85, margin: 0, lineHeight: "1.6" }}>
+            Sua opinião é muito importante para nós! Leva menos de 1 minuto e nos ajuda a oferecer um atendimento cada vez melhor.
+          </p>
+        </div>
+
+        {/* Card da pergunta */}
+        <div style={{ background: "#fff", borderRadius: "0 0 16px 16px", padding: "40px 36px 32px", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+          <p style={{ fontWeight: "600", color: "#1a2e4a", fontSize: "16px", margin: "0 0 36px", textAlign: "center" }}>
+            <span style={{ color: "#2e7d52", marginRight: "6px" }}>1.</span>
+            O quanto você recomendaria nossa loja para um amigo ou familiar?
+            <span style={{ color: "#e05555", marginLeft: "4px" }}>*</span>
+          </p>
+
+          {/* Valor exibido */}
+          <div style={{ textAlign: "center", marginBottom: "28px" }}>
+            {valor !== null ? (
+              <>
+                <div style={{
+                  fontSize: "64px", fontWeight: "800", color: nivel.cor,
+                  lineHeight: 1, transition: "color 0.3s"
+                }}>
+                  {valor}%
+                </div>
+                <div style={{
+                  marginTop: "8px", fontSize: "15px", fontWeight: "600",
+                  color: nivel.cor, transition: "color 0.3s"
+                }}>
+                  {nivel.label}
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: "18px", color: "#b0bec5", fontWeight: "500" }}>
+                Arraste a barra para responder
+              </div>
+            )}
+          </div>
+
+          {/* Slider */}
+          <div style={{ position: "relative", padding: "0 4px" }}>
+            <style>{`
+              .satisfacao-slider {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 100%;
+                height: 10px;
+                border-radius: 8px;
+                outline: none;
+                cursor: pointer;
+                transition: background 0.2s;
+              }
+              .satisfacao-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: #1a2e4a;
+                cursor: pointer;
+                border: 3px solid #fff;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+                transition: transform 0.15s;
+              }
+              .satisfacao-slider::-webkit-slider-thumb:hover {
+                transform: scale(1.15);
+              }
+              .satisfacao-slider::-moz-range-thumb {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: #1a2e4a;
+                cursor: pointer;
+                border: 3px solid #fff;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+              }
+            `}</style>
+            <input
+              type="range" min="0" max="100" step="1"
+              value={valor ?? 50}
+              className="satisfacao-slider"
+              style={{
+                background: valor !== null
+                  ? `linear-gradient(to right, ${nivel.cor} 0%, ${nivel.cor} ${valor}%, #dce6f0 ${valor}%, #dce6f0 100%)`
+                  : "#dce6f0"
+              }}
+              onChange={e => { setValor(Number(e.target.value)); setArrastou(true); setErro(false); }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px" }}>
+              <span style={{ fontSize: "12px", color: "#8a9ab0" }}>0 — Jamais indicaria</span>
+              <span style={{ fontSize: "12px", color: "#8a9ab0" }}>100 — Com certeza!</span>
+            </div>
+          </div>
+
+          {/* Legenda de emojis */}
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "20px", padding: "0 2px" }}>
+            {["😞", "😟", "😐", "🙂", "😄"].map((e, i) => (
+              <div key={i} style={{ textAlign: "center", flex: 1 }}>
+                <div style={{ fontSize: "22px" }}>{e}</div>
+                <div style={{ fontSize: "10px", color: "#8a9ab0", marginTop: "2px" }}>
+                  {["0–20%", "21–40%", "41–60%", "61–80%", "81–100%"][i]}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Botão */}
+          <div style={{ marginTop: "36px" }}>
+            {erro && (
+              <p style={{ color: "#e05555", fontSize: "13px", marginBottom: "10px", textAlign: "center" }}>
+                ⚠️ Por favor, arraste a barra antes de enviar.
+              </p>
+            )}
+            <button onClick={enviar} style={{
+              background: "#1a2e4a", color: "#fff", border: "none", borderRadius: "10px",
+              padding: "14px 36px", fontSize: "15px", fontWeight: "600", cursor: "pointer",
+              width: "100%", transition: "background 0.2s"
+            }}
+              onMouseEnter={e => e.target.style.background = "#2e4a6a"}
+              onMouseLeave={e => e.target.style.background = "#1a2e4a"}
+            >
+              Enviar resposta
+            </button>
+            <p style={{ textAlign: "center", fontSize: "12px", color: "#8a9ab0", marginTop: "12px" }}>
+              🔒 Resposta anônima. Obrigado pela sua visita!
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
