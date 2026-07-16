@@ -8,72 +8,46 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; padding: 32px 16px; }
     .wrap { max-width: 680px; margin: 0 auto; }
-
     .header { background: #1a2e4a; border-radius: 16px 16px 0 0; padding: 32px 36px; color: #fff; }
     .header .sub { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; opacity: .7; margin-bottom: 8px; }
     .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
     .header p { font-size: 14px; opacity: .85; line-height: 1.6; }
-
     .card { background: #fff; border-radius: 0 0 16px 16px; padding: 40px 36px 32px; box-shadow: 0 4px 24px rgba(0,0,0,.07); }
-
     .pergunta { font-weight: 600; color: #1a2e4a; font-size: 16px; margin-bottom: 36px; text-align: center; }
-    .pergunta span.num { color: #2e7d52; margin-right: 6px; }
-    .pergunta span.obr { color: #e05555; margin-left: 4px; }
-
+    .pergunta .num { color: #2e7d52; margin-right: 6px; }
+    .pergunta .obr { color: #e05555; margin-left: 4px; }
     .valor-box { text-align: center; margin-bottom: 28px; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .valor-num { font-size: 64px; font-weight: 800; line-height: 1; transition: color .3s; }
-    .valor-label { margin-top: 8px; font-size: 15px; font-weight: 600; transition: color .3s; }
+    .valor-num { font-size: 64px; font-weight: 800; line-height: 1; transition: color .3s; display: none; }
+    .valor-label { margin-top: 8px; font-size: 15px; font-weight: 600; transition: color .3s; display: none; }
     .placeholder { font-size: 18px; color: #b0bec5; font-weight: 500; }
-
     .slider-wrap { padding: 0 4px; }
-    input[type=range] {
-      -webkit-appearance: none; appearance: none;
-      width: 100%; height: 10px; border-radius: 8px; outline: none; cursor: pointer;
-      transition: background .2s;
-    }
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none; appearance: none;
-      width: 28px; height: 28px; border-radius: 50%;
-      background: #1a2e4a; cursor: pointer;
-      border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25);
-      transition: transform .15s;
-    }
+    input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 10px; border-radius: 8px; outline: none; cursor: pointer; transition: background .2s; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #1a2e4a; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: transform .15s; }
     input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
-    input[type=range]::-moz-range-thumb {
-      width: 28px; height: 28px; border-radius: 50%;
-      background: #1a2e4a; cursor: pointer;
-      border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25);
-    }
+    input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: #1a2e4a; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
     .extremos { display: flex; justify-content: space-between; margin-top: 8px; }
     .extremos span { font-size: 12px; color: #8a9ab0; }
-
     .emojis { display: flex; justify-content: space-between; margin-top: 20px; padding: 0 2px; }
     .emoji-item { text-align: center; flex: 1; }
     .emoji-item .e { font-size: 22px; }
     .emoji-item .faixa { font-size: 10px; color: #8a9ab0; margin-top: 2px; }
-
     .btn-wrap { margin-top: 36px; }
     .erro { color: #e05555; font-size: 13px; margin-bottom: 10px; text-align: center; display: none; }
-    button {
-      background: #1a2e4a; color: #fff; border: none; border-radius: 10px;
-      padding: 14px 36px; font-size: 15px; font-weight: 600; cursor: pointer;
-      width: 100%; transition: background .2s; font-family: inherit;
-    }
+    button { background: #1a2e4a; color: #fff; border: none; border-radius: 10px; padding: 14px 36px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: background .2s; font-family: inherit; }
     button:hover { background: #2e4a6a; }
     .rodape { text-align: center; font-size: 12px; color: #8a9ab0; margin-top: 12px; }
-
-    /* Tela de sucesso */
     .sucesso { display: none; min-height: 100vh; background: #f0f4f8; align-items: center; justify-content: center; padding: 24px; }
     .sucesso-card { background: #fff; border-radius: 16px; padding: 48px 40px; max-width: 480px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
     .sucesso-icon { font-size: 56px; margin-bottom: 16px; }
     .sucesso-titulo { color: #1a2e4a; font-size: 24px; margin-bottom: 12px; }
     .sucesso-valor { display: inline-block; color: #fff; border-radius: 24px; padding: 8px 24px; font-weight: 700; font-size: 20px; margin-bottom: 16px; }
     .sucesso-texto { color: #5a6a7a; line-height: 1.6; }
+    .btn-nova { margin-top: 24px; background: #1a2e4a; color: #fff; border: none; border-radius: 10px; padding: 12px 32px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; width: auto; }
+    .btn-nova:hover { background: #2e4a6a; }
   </style>
 </head>
 <body>
 
-<!-- Tela da pesquisa -->
 <div class="wrap" id="tela-pesquisa">
   <div class="header">
     <div class="sub">Avaliação de Experiência</div>
@@ -86,22 +60,18 @@
       O quanto você recomendaria nossa loja para um amigo ou familiar?
       <span class="obr">*</span>
     </p>
-
     <div class="valor-box">
-      <div id="valor-num" class="valor-num" style="display:none"></div>
-      <div id="valor-label" class="valor-label" style="display:none"></div>
+      <div id="valor-num" class="valor-num"></div>
+      <div id="valor-label" class="valor-label"></div>
       <div id="placeholder" class="placeholder">Arraste a barra para responder</div>
     </div>
-
     <div class="slider-wrap">
-      <input type="range" id="slider" min="0" max="100" step="1" value="50"
-        style="background:#dce6f0" oninput="atualizar(this.value)" />
+      <input type="range" id="slider" min="0" max="100" step="1" value="50" style="background:#dce6f0" oninput="atualizar(this.value)" />
       <div class="extremos">
         <span>0 — Jamais indicaria</span>
         <span>100 — Com certeza!</span>
       </div>
     </div>
-
     <div class="emojis">
       <div class="emoji-item"><div class="e">😞</div><div class="faixa">0–20</div></div>
       <div class="emoji-item"><div class="e">😟</div><div class="faixa">21–40</div></div>
@@ -109,7 +79,6 @@
       <div class="emoji-item"><div class="e">🙂</div><div class="faixa">61–80</div></div>
       <div class="emoji-item"><div class="e">😄</div><div class="faixa">81–100</div></div>
     </div>
-
     <div class="btn-wrap">
       <div class="erro" id="erro">⚠️ Por favor, arraste a barra antes de enviar.</div>
       <button onclick="enviar()">Enviar resposta</button>
@@ -118,29 +87,37 @@
   </div>
 </div>
 
-<!-- Tela de sucesso -->
 <div class="sucesso" id="tela-sucesso">
   <div class="sucesso-card">
     <div class="sucesso-icon">✅</div>
     <h2 class="sucesso-titulo">Resposta enviada!</h2>
     <div class="sucesso-valor" id="sucesso-valor"></div>
     <p class="sucesso-texto">Obrigado pela sua participação. Sua resposta é anônima e será utilizada para melhorarmos o atendimento.</p>
+    <button class="btn-nova" onclick="novaResposta()">Enviar outra resposta</button>
   </div>
 </div>
 
 <script>
-  const SHEET_URL = "https://script.google.com/macros/s/AKfycbyYIOzpdQ8fpg26rSQ_g8cvbVwo0eyF0tavR4o8ugL1_Tb_t4dHxE_VLyeROzN0Yxwg/exec";
-  let valor = null;
+  var SHEET_URL = "https://script.google.com/macros/s/AKfycbyYIOzpdQ8fpg26rSQ_g8cvbVwo0eyF0tavR4o8ugL1_Tb_t4dHxE_VLyeROzN0Yxwg/exec";
+  var valor = null;
 
-  const cores = v => v <= 20 ? ["#e05555","Muito insatisfeito"] : v <= 40 ? ["#e07b35","Insatisfeito"] : v <= 60 ? ["#e0b830","Neutro"] : v <= 80 ? ["#5a9e6f","Satisfeito"] : ["#2e7d52","Muito satisfeito"];
+  function getCor(v) {
+    if (v <= 20) return ["#e05555", "Muito insatisfeito"];
+    if (v <= 40) return ["#e07b35", "Insatisfeito"];
+    if (v <= 60) return ["#e0b830", "Neutro"];
+    if (v <= 80) return ["#5a9e6f", "Satisfeito"];
+    return ["#2e7d52", "Muito satisfeito"];
+  }
 
   function atualizar(v) {
     valor = parseInt(v);
-    const [cor, label] = cores(valor);
-    const sl = document.getElementById("slider");
-    sl.style.background = `linear-gradient(to right, ${cor} 0%, ${cor} ${valor}%, #dce6f0 ${valor}%, #dce6f0 100%)`;
-    const num = document.getElementById("valor-num");
-    const lbl = document.getElementById("valor-label");
+    var res = getCor(valor);
+    var cor = res[0];
+    var label = res[1];
+    var sl = document.getElementById("slider");
+    sl.style.background = "linear-gradient(to right, " + cor + " 0%, " + cor + " " + valor + "%, #dce6f0 " + valor + "%, #dce6f0 100%)";
+    var num = document.getElementById("valor-num");
+    var lbl = document.getElementById("valor-label");
     num.textContent = valor + "%";
     num.style.color = cor;
     num.style.display = "block";
@@ -151,23 +128,36 @@
     document.getElementById("erro").style.display = "none";
   }
 
-  async function enviar() {
-    if (valor === null) { document.getElementById("erro").style.display = "block"; return; }
-    try {
-      await fetch(SHEET_URL, {
-        method: "POST", mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ satisfacao: valor })
-      });
-    } catch(e) { console.error(e); }
+  function novaResposta() {
+    valor = null;
+    document.getElementById("slider").value = 50;
+    document.getElementById("slider").style.background = "#dce6f0";
+    document.getElementById("valor-num").style.display = "none";
+    document.getElementById("valor-label").style.display = "none";
+    document.getElementById("placeholder").style.display = "block";
+    document.getElementById("erro").style.display = "none";
+    document.getElementById("tela-sucesso").style.display = "none";
+    document.getElementById("tela-pesquisa").style.display = "block";
+  }
 
-    const [cor] = cores(valor);
-    const sv = document.getElementById("sucesso-valor");
+  function enviar() {
+    if (valor === null) {
+      document.getElementById("erro").style.display = "block";
+      return;
+    }
+    fetch(SHEET_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ satisfacao: valor })
+    }).catch(function(e) { console.error(e); });
+
+    var res = getCor(valor);
+    var sv = document.getElementById("sucesso-valor");
     sv.textContent = valor + "%";
-    sv.style.background = cor;
-
+    sv.style.background = res[0];
     document.getElementById("tela-pesquisa").style.display = "none";
-    const s = document.getElementById("tela-sucesso");
+    var s = document.getElementById("tela-sucesso");
     s.style.display = "flex";
   }
 </script>
