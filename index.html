@@ -1,165 +1,493 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pesquisa de Satisfação</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; padding: 32px 16px; }
-    .wrap { max-width: 680px; margin: 0 auto; }
-    .header { background: #1a2e4a; border-radius: 16px 16px 0 0; padding: 32px 36px; color: #fff; }
-    .header .sub { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; opacity: .7; margin-bottom: 8px; }
-    .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
-    .header p { font-size: 14px; opacity: .85; line-height: 1.6; }
-    .card { background: #fff; border-radius: 0 0 16px 16px; padding: 40px 36px 32px; box-shadow: 0 4px 24px rgba(0,0,0,.07); }
-    .pergunta { font-weight: 600; color: #1a2e4a; font-size: 16px; margin-bottom: 36px; text-align: center; }
-    .pergunta .num { color: #2e7d52; margin-right: 6px; }
-    .pergunta .obr { color: #e05555; margin-left: 4px; }
-    .valor-box { text-align: center; margin-bottom: 28px; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .valor-num { font-size: 64px; font-weight: 800; line-height: 1; transition: color .3s; display: none; }
-    .valor-label { margin-top: 8px; font-size: 15px; font-weight: 600; transition: color .3s; display: none; }
-    .placeholder { font-size: 18px; color: #b0bec5; font-weight: 500; }
-    .slider-wrap { padding: 0 4px; }
-    input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 10px; border-radius: 8px; outline: none; cursor: pointer; transition: background .2s; }
-    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #1a2e4a; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: transform .15s; }
-    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
-    input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: #1a2e4a; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
-    .extremos { display: flex; justify-content: space-between; margin-top: 8px; }
-    .extremos span { font-size: 12px; color: #8a9ab0; }
-    .emojis { display: flex; justify-content: space-between; margin-top: 20px; padding: 0 2px; }
-    .emoji-item { text-align: center; flex: 1; }
-    .emoji-item .e { font-size: 22px; }
-    .emoji-item .faixa { font-size: 10px; color: #8a9ab0; margin-top: 2px; }
-    .btn-wrap { margin-top: 36px; }
-    .erro { color: #e05555; font-size: 13px; margin-bottom: 10px; text-align: center; display: none; }
-    button { background: #1a2e4a; color: #fff; border: none; border-radius: 10px; padding: 14px 36px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: background .2s; font-family: inherit; }
-    button:hover { background: #2e4a6a; }
-    .rodape { text-align: center; font-size: 12px; color: #8a9ab0; margin-top: 12px; }
-    .sucesso { display: none; min-height: 100vh; background: #f0f4f8; align-items: center; justify-content: center; padding: 24px; }
-    .sucesso-card { background: #fff; border-radius: 16px; padding: 48px 40px; max-width: 480px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
-    .sucesso-icon { font-size: 56px; margin-bottom: 16px; }
-    .sucesso-titulo { color: #1a2e4a; font-size: 24px; margin-bottom: 12px; }
-    .sucesso-valor { display: inline-block; color: #fff; border-radius: 24px; padding: 8px 24px; font-weight: 700; font-size: 20px; margin-bottom: 16px; }
-    .sucesso-texto { color: #5a6a7a; line-height: 1.6; }
-    .btn-nova { margin-top: 24px; background: #1a2e4a; color: #fff; border: none; border-radius: 10px; padding: 12px 32px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; width: auto; }
-    .btn-nova:hover { background: #2e4a6a; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pesquisa de Satisfação</title>
+<style>
+  :root {
+    --primary: #2E2B28;
+    --bg: #FAFAF8;
+    --card: #FFFFFF;
+    --border: #E5E3DD;
+    --text: #1A1A1A;
+    --text-secondary: #6B6B66;
+    --danger: #C0392B;
+    --success: #2E7D32;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+  .wrap.wide { max-width: 1000px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 0 0 16px; }
+  p.subtitle { color: var(--text-secondary); font-size: 14px; margin: 0 0 28px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  label { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 6px; font-weight: 500; }
+  input[type=text], input[type=email], input[type=password], input[type=color], textarea, select {
+    width: 100%;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    background: #fff;
+    color: var(--text);
+  }
+  textarea { resize: vertical; min-height: 80px; }
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 18px;
+    cursor: pointer;
+    background: var(--primary);
+    color: #fff;
+  }
+  button.secondary { background: #fff; color: var(--text); border: 1px solid var(--border); }
+  button.danger { background: var(--danger); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  a { color: inherit; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .row.between { justify-content: space-between; }
+  .top-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px;
+  }
+  .top-bar .logo { font-weight: 700; font-size: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-secondary); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .muted { color: var(--text-secondary); font-size: 13px; }
+  .error { color: var(--danger); font-size: 13px; margin: -8px 0 12px; }
+  .likert { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 24px 0 8px; }
+  .likert button.opt {
+    background: #fff;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 6px 12px;
+    text-align: center;
+    color: var(--text);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .likert button.opt .emoji { font-size: 30px; }
+  .likert button.opt .lbl { font-size: 11px; font-weight: 600; line-height: 1.2; }
+  .likert button.opt.selected { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, white); }
+  .thanks { text-align: center; padding: 60px 20px; }
+  .thanks .big { font-size: 48px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .bar-row .emoji { width: 26px; font-size: 18px; }
+  .bar-track { flex: 1; background: #F0EFEA; border-radius: 6px; height: 14px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--primary); }
+  .bar-row .count { width: 34px; text-align: right; font-size: 12px; color: var(--text-secondary); }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-grid .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+  .stat-grid .stat .num { font-size: 26px; font-weight: 700; }
+  .stat-grid .stat .lbl { font-size: 12px; color: var(--text-secondary); }
+  .center-screen { min-height: 70vh; display: flex; align-items: center; justify-content: center; }
+  .link-box { background: #F5F4F0; border-radius: 8px; padding: 10px 12px; font-size: 13px; word-break: break-all; margin-bottom: 12px; }
+  footer.note { text-align: center; font-size: 12px; color: var(--text-secondary); margin-top: 24px; }
+</style>
 </head>
 <body>
+<div id="app"></div>
 
-<div class="wrap" id="tela-pesquisa">
-  <div class="header">
-    <div class="sub">Avaliação de Experiência</div>
-    <h1>Como foi sua experiência na loja?</h1>
-    <p>Sua opinião é muito importante para nós! Leva menos de 1 minuto e nos ajuda a oferecer um atendimento cada vez melhor.</p>
-  </div>
-  <div class="card">
-    <p class="pergunta">
-      <span class="num">1.</span>
-      O quanto você recomendaria nossa loja para um amigo ou familiar?
-      <span class="obr">*</span>
-    </p>
-    <div class="valor-box">
-      <div id="valor-num" class="valor-num"></div>
-      <div id="valor-label" class="valor-label"></div>
-      <div id="placeholder" class="placeholder">Arraste a barra para responder</div>
-    </div>
-    <div class="slider-wrap">
-      <input type="range" id="slider" min="0" max="100" step="1" value="50" style="background:#dce6f0" oninput="atualizar(this.value)" />
-      <div class="extremos">
-        <span>0 — Jamais indicaria</span>
-        <span>100 — Com certeza!</span>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDoc, getDocs, addDoc, deleteDoc, setDoc,
+  query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ======================================================================
+// PREENCHA COM AS CREDENCIAIS DO SEU PROJETO FIREBASE
+// (Firebase Console > Configurações do projeto > Seus apps > Config)
+// ======================================================================
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  authDomain: "SEU_PROJETO.firebaseapp.com",
+  projectId: "SEU_PROJETO",
+  storageBucket: "SEU_PROJETO.appspot.com",
+  messagingSenderId: "SEU_SENDER_ID",
+  appId: "SEU_APP_ID"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+
+// ----------------------------------------------------------------------
+// Escala Likert de 5 pontos
+// ----------------------------------------------------------------------
+const LIKERT = [
+  { value: 1, emoji: "😡", label: "Muito insatisfeito", color: "#C0392B" },
+  { value: 2, emoji: "😕", label: "Insatisfeito",        color: "#E08A2B" },
+  { value: 3, emoji: "😐", label: "Neutro",               color: "#B8976A" },
+  { value: 4, emoji: "🙂", label: "Satisfeito",            color: "#5C8A3A" },
+  { value: 5, emoji: "😍", label: "Muito satisfeito",      color: "#2E7D32" }
+];
+
+function slugify(str) {
+  return str.toLowerCase().trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+function fmtDate(ts) {
+  if (!ts) return "-";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+function likertOf(score) {
+  return LIKERT.find(l => l.value === Number(score)) || LIKERT[2];
+}
+
+const app = document.getElementById("app");
+
+// ----------------------------------------------------------------------
+// Router simples baseado em hash
+// #/                          -> redireciona para /admin ou /login
+// #/login                     -> tela de login do admin
+// #/admin                     -> lista de empresas
+// #/admin/nova                -> cadastrar nova empresa
+// #/admin/empresa/{slug}      -> respostas da empresa
+// #/empresa/{slug}            -> página pública de pesquisa
+// ----------------------------------------------------------------------
+window.addEventListener("hashchange", render);
+onAuthStateChanged(auth, () => render());
+
+function currentUser() { return auth.currentUser; }
+
+function navigate(hash) { window.location.hash = hash; }
+
+async function render() {
+  const hash = window.location.hash.replace(/^#\/?/, "");
+  const parts = hash.split("/").filter(Boolean);
+
+  if (parts[0] === "empresa" && parts[1]) {
+    return renderPublicSurvey(parts[1]);
+  }
+  if (parts[0] === "login") {
+    return renderLogin();
+  }
+  if (parts[0] === "admin" && parts[1] === "nova") {
+    if (!currentUser()) return renderLogin();
+    return renderNovaEmpresa();
+  }
+  if (parts[0] === "admin" && parts[1] === "empresa" && parts[2]) {
+    if (!currentUser()) return renderLogin();
+    return renderRespostas(parts[2]);
+  }
+  if (parts[0] === "admin") {
+    if (!currentUser()) return renderLogin();
+    return renderAdminDashboard();
+  }
+  // raiz
+  if (currentUser()) navigate("#/admin");
+  else navigate("#/login");
+}
+
+// ---------------------------- LOGIN ------------------------------------
+function renderLogin() {
+  app.innerHTML = `
+    <div class="center-screen">
+      <div class="card" style="width:360px">
+        <h2>Painel administrativo</h2>
+        <p class="subtitle" style="margin-bottom:20px">Acesse com seu e-mail e senha do Firebase Auth.</p>
+        <label>E-mail</label>
+        <input type="email" id="login-email" placeholder="voce@empresa.com" />
+        <label>Senha</label>
+        <input type="password" id="login-pass" />
+        <div class="error" id="login-error" style="display:none"></div>
+        <button id="login-btn" style="width:100%">Entrar</button>
       </div>
     </div>
-    <div class="emojis">
-      <div class="emoji-item"><div class="e">😞</div><div class="faixa">0–20</div></div>
-      <div class="emoji-item"><div class="e">😟</div><div class="faixa">21–40</div></div>
-      <div class="emoji-item"><div class="e">😐</div><div class="faixa">41–60</div></div>
-      <div class="emoji-item"><div class="e">🙂</div><div class="faixa">61–80</div></div>
-      <div class="emoji-item"><div class="e">😄</div><div class="faixa">81–100</div></div>
+  `;
+  document.getElementById("login-btn").onclick = async () => {
+    const email = document.getElementById("login-email").value.trim();
+    const pass = document.getElementById("login-pass").value;
+    const errEl = document.getElementById("login-error");
+    errEl.style.display = "none";
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      navigate("#/admin");
+    } catch (e) {
+      errEl.textContent = "Não foi possível entrar. Confira e-mail e senha.";
+      errEl.style.display = "block";
+    }
+  };
+}
+
+// ------------------------- ADMIN DASHBOARD ------------------------------
+async function renderAdminDashboard() {
+  app.innerHTML = `<div class="wrap wide"><p class="muted">Carregando empresas...</p></div>`;
+  const snap = await getDocs(query(collection(db, "companies"), orderBy("createdAt", "desc")));
+  const companies = [];
+  snap.forEach(d => companies.push({ id: d.id, ...d.data() }));
+
+  const rows = companies.map(c => `
+    <tr>
+      <td><strong>${escapeHtml(c.name)}</strong><br><span class="muted">${c.slug}</span></td>
+      <td><span class="pill" style="background:${c.primaryColor || "#2E2B28"}22;color:${c.primaryColor || "#2E2B28"}">●</span></td>
+      <td>${fmtDate(c.createdAt)}</td>
+      <td class="row">
+        <button class="secondary" data-copy="${window.location.origin}${window.location.pathname}#/empresa/${c.slug}">Copiar link</button>
+        <button class="secondary" data-view="${c.slug}">Ver respostas</button>
+        <button class="danger" data-del="${c.id}">Excluir</button>
+      </td>
+    </tr>
+  `).join("");
+
+  app.innerHTML = `
+    <div class="wrap wide">
+      <div class="top-bar">
+        <div class="logo">Pesquisas de Satisfação · Admin</div>
+        <button class="secondary" id="logout-btn">Sair</button>
+      </div>
+      <div class="row between" style="margin-bottom:20px">
+        <h1 style="margin:0">Empresas</h1>
+        <button id="nova-btn">+ Nova empresa</button>
+      </div>
+      ${companies.length === 0 ? `<div class="card"><p class="muted">Nenhuma empresa cadastrada ainda. Clique em "Nova empresa" para criar a primeira página de pesquisa.</p></div>` : `
+      <div class="card" style="padding:0">
+        <table>
+          <thead><tr><th>Empresa</th><th>Cor</th><th>Criada em</th><th>Ações</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`}
     </div>
-    <div class="btn-wrap">
-      <div class="erro" id="erro">⚠️ Por favor, arraste a barra antes de enviar.</div>
-      <button onclick="enviar()">Enviar resposta</button>
-      <p class="rodape">🔒 Resposta anônima. Obrigado pela sua visita!</p>
+  `;
+
+  document.getElementById("logout-btn").onclick = async () => { await signOut(auth); navigate("#/login"); };
+  document.getElementById("nova-btn").onclick = () => navigate("#/admin/nova");
+  app.querySelectorAll("[data-view]").forEach(b => b.onclick = () => navigate("#/admin/empresa/" + b.dataset.view));
+  app.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => {
+    navigator.clipboard.writeText(b.dataset.copy);
+    b.textContent = "Copiado!";
+    setTimeout(() => b.textContent = "Copiar link", 1500);
+  });
+  app.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+    if (!confirm("Excluir esta empresa? As respostas cadastradas não serão apagadas automaticamente.")) return;
+    await deleteDoc(doc(db, "companies", b.dataset.del));
+    renderAdminDashboard();
+  });
+}
+
+// ------------------------- NOVA EMPRESA ---------------------------------
+function renderNovaEmpresa() {
+  app.innerHTML = `
+    <div class="wrap">
+      <div class="top-bar">
+        <div class="logo">Pesquisas de Satisfação · Admin</div>
+        <a href="#/admin"><button class="secondary">Voltar</button></a>
+      </div>
+      <h1>Nova empresa</h1>
+      <p class="subtitle">Cria a página pública de pesquisa de satisfação para o cliente.</p>
+      <div class="card">
+        <label>Nome da empresa</label>
+        <input type="text" id="c-name" placeholder="Ex: Panificadora Pão Delícia" />
+        <label>Endereço da página (gerado automaticamente, pode editar)</label>
+        <input type="text" id="c-slug" placeholder="pao-delicia" />
+        <label>Cor principal</label>
+        <input type="color" id="c-color" value="#2E2B28" />
+        <div class="error" id="nova-error" style="display:none"></div>
+        <button id="salvar-btn">Criar empresa</button>
+      </div>
     </div>
-  </div>
-</div>
+  `;
+  const nameEl = document.getElementById("c-name");
+  const slugEl = document.getElementById("c-slug");
+  let slugTouched = false;
+  slugEl.addEventListener("input", () => slugTouched = true);
+  nameEl.addEventListener("input", () => {
+    if (!slugTouched) slugEl.value = slugify(nameEl.value);
+  });
 
-<div class="sucesso" id="tela-sucesso">
-  <div class="sucesso-card">
-    <div class="sucesso-icon">✅</div>
-    <h2 class="sucesso-titulo">Resposta enviada!</h2>
-    <div class="sucesso-valor" id="sucesso-valor"></div>
-    <p class="sucesso-texto">Obrigado pela sua participação. Sua resposta é anônima e será utilizada para melhorarmos o atendimento.</p>
-    <button class="btn-nova" onclick="novaResposta()">Enviar outra resposta</button>
-  </div>
-</div>
-
-<script>
-  var SHEET_URL = "https://script.google.com/macros/s/AKfycbyYIOzpdQ8fpg26rSQ_g8cvbVwo0eyF0tavR4o8ugL1_Tb_t4dHxE_VLyeROzN0Yxwg/exec";
-  var valor = null;
-
-  function getCor(v) {
-    if (v <= 20) return ["#e05555", "Muito insatisfeito"];
-    if (v <= 40) return ["#e07b35", "Insatisfeito"];
-    if (v <= 60) return ["#e0b830", "Neutro"];
-    if (v <= 80) return ["#5a9e6f", "Satisfeito"];
-    return ["#2e7d52", "Muito satisfeito"];
-  }
-
-  function atualizar(v) {
-    valor = parseInt(v);
-    var res = getCor(valor);
-    var cor = res[0];
-    var label = res[1];
-    var sl = document.getElementById("slider");
-    sl.style.background = "linear-gradient(to right, " + cor + " 0%, " + cor + " " + valor + "%, #dce6f0 " + valor + "%, #dce6f0 100%)";
-    var num = document.getElementById("valor-num");
-    var lbl = document.getElementById("valor-label");
-    num.textContent = valor + "%";
-    num.style.color = cor;
-    num.style.display = "block";
-    lbl.textContent = label;
-    lbl.style.color = cor;
-    lbl.style.display = "block";
-    document.getElementById("placeholder").style.display = "none";
-    document.getElementById("erro").style.display = "none";
-  }
-
-  function novaResposta() {
-    valor = null;
-    document.getElementById("slider").value = 50;
-    document.getElementById("slider").style.background = "#dce6f0";
-    document.getElementById("valor-num").style.display = "none";
-    document.getElementById("valor-label").style.display = "none";
-    document.getElementById("placeholder").style.display = "block";
-    document.getElementById("erro").style.display = "none";
-    document.getElementById("tela-sucesso").style.display = "none";
-    document.getElementById("tela-pesquisa").style.display = "block";
-  }
-
-  function enviar() {
-    if (valor === null) {
-      document.getElementById("erro").style.display = "block";
+  document.getElementById("salvar-btn").onclick = async () => {
+    const name = nameEl.value.trim();
+    const slug = slugify(slugEl.value);
+    const color = document.getElementById("c-color").value;
+    const errEl = document.getElementById("nova-error");
+    errEl.style.display = "none";
+    if (!name || !slug) {
+      errEl.textContent = "Preencha o nome da empresa.";
+      errEl.style.display = "block";
       return;
     }
-    fetch(SHEET_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ satisfacao: valor })
-    }).catch(function(e) { console.error(e); });
+    const existing = await getDoc(doc(db, "companies", slug));
+    if (existing.exists()) {
+      errEl.textContent = "Já existe uma empresa com esse endereço. Escolha outro.";
+      errEl.style.display = "block";
+      return;
+    }
+    // usa o slug como ID do documento, permitindo busca direta na página pública
+    await setDoc(doc(db, "companies", slug), {
+      name, slug, primaryColor: color, createdAt: serverTimestamp()
+    });
+    navigate("#/admin");
+  };
+}
 
-    var res = getCor(valor);
-    var sv = document.getElementById("sucesso-valor");
-    sv.textContent = valor + "%";
-    sv.style.background = res[0];
-    document.getElementById("tela-pesquisa").style.display = "none";
-    var s = document.getElementById("tela-sucesso");
-    s.style.display = "flex";
+// ------------------------- RESPOSTAS (ADMIN) -----------------------------
+async function renderRespostas(slug) {
+  app.innerHTML = `<div class="wrap wide"><p class="muted">Carregando...</p></div>`;
+  const compSnap = await getDoc(doc(db, "companies", slug));
+  if (!compSnap.exists()) {
+    app.innerHTML = `<div class="wrap"><p>Empresa não encontrada.</p><a href="#/admin">Voltar</a></div>`;
+    return;
   }
+  const company = compSnap.data();
+  const respSnap = await getDocs(query(collection(db, "companies", slug, "responses"), orderBy("createdAt", "desc")));
+  const responses = [];
+  respSnap.forEach(d => responses.push({ id: d.id, ...d.data() }));
+
+  const total = responses.length;
+  const avg = total ? (responses.reduce((s, r) => s + Number(r.score), 0) / total).toFixed(1) : "-";
+  const satisfeitos = responses.filter(r => Number(r.score) >= 4).length;
+  const pctSatisfeitos = total ? Math.round((satisfeitos / total) * 100) : 0;
+
+  const counts = LIKERT.map(l => responses.filter(r => Number(r.score) === l.value).length);
+  const maxCount = Math.max(1, ...counts);
+
+  const barRows = LIKERT.map((l, i) => `
+    <div class="bar-row">
+      <span class="emoji">${l.emoji}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(counts[i] / maxCount) * 100}%;background:${l.color}"></div></div>
+      <span class="count">${counts[i]}</span>
+    </div>
+  `).join("");
+
+  const obsRows = responses.filter(r => r.observation).map(r => `
+    <tr>
+      <td>${likertOf(r.score).emoji} ${likertOf(r.score).label}</td>
+      <td>${escapeHtml(r.observation)}</td>
+      <td class="muted">${fmtDate(r.createdAt)}</td>
+    </tr>
+  `).join("");
+
+  app.innerHTML = `
+    <div class="wrap wide">
+      <div class="top-bar">
+        <div class="logo">Pesquisas de Satisfação · Admin</div>
+        <a href="#/admin"><button class="secondary">Voltar</button></a>
+      </div>
+      <h1>${escapeHtml(company.name)}</h1>
+      <p class="subtitle">${window.location.origin}${window.location.pathname}#/empresa/${slug}</p>
+
+      <div class="stat-grid">
+        <div class="stat"><div class="num">${total}</div><div class="lbl">Respostas</div></div>
+        <div class="stat"><div class="num">${avg}</div><div class="lbl">Nota média (1–5)</div></div>
+        <div class="stat"><div class="num">${pctSatisfeitos}%</div><div class="lbl">Satisfeitos (4–5)</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Distribuição das notas</h2>
+        ${barRows}
+      </div>
+
+      <div class="card" style="padding:0">
+        <div style="padding:20px 20px 0"><h2>Observações</h2></div>
+        ${obsRows ? `<table style="padding:0 20px 20px"><thead><tr><th>Nota</th><th>Observação</th><th>Data</th></tr></thead><tbody>${obsRows}</tbody></table>`
+          : `<p class="muted" style="padding:0 20px 20px">Nenhuma observação registrada ainda.</p>`}
+      </div>
+    </div>
+  `;
+}
+
+// ------------------------- PÁGINA PÚBLICA --------------------------------
+async function renderPublicSurvey(slug) {
+  app.innerHTML = `<div class="center-screen"><p class="muted">Carregando...</p></div>`;
+  const compSnap = await getDoc(doc(db, "companies", slug));
+  if (!compSnap.exists()) {
+    app.innerHTML = `<div class="center-screen"><p>Página não encontrada.</p></div>`;
+    return;
+  }
+  const company = compSnap.data();
+  document.documentElement.style.setProperty("--primary", company.primaryColor || "#2E2B28");
+  document.title = "Pesquisa de satisfação — " + company.name;
+
+  let selected = null;
+
+  app.innerHTML = `
+    <div class="wrap">
+      <div id="survey-box">
+        <h1>${escapeHtml(company.name)}</h1>
+        <p class="subtitle">Como foi sua experiência com a gente? Sua opinião nos ajuda a melhorar.</p>
+        <div class="card">
+          <div class="likert" id="likert-opts">
+            ${LIKERT.map(l => `
+              <button type="button" class="opt" data-val="${l.value}">
+                <span class="emoji">${l.emoji}</span>
+                <span class="lbl">${l.label}</span>
+              </button>
+            `).join("")}
+          </div>
+          <label style="margin-top:8px">Observação (opcional)</label>
+          <textarea id="obs" placeholder="Conte um pouco mais sobre sua experiência"></textarea>
+          <button id="enviar-btn" disabled style="width:100%">Enviar avaliação</button>
+        </div>
+      </div>
+      <div id="thanks-box" style="display:none" class="thanks">
+        <div class="big">✅</div>
+        <h2>Obrigado pelo retorno!</h2>
+        <p class="muted">Sua avaliação foi registrada com sucesso.</p>
+      </div>
+    </div>
+  `;
+
+  const opts = app.querySelectorAll(".likert .opt");
+  const enviarBtn = document.getElementById("enviar-btn");
+  opts.forEach(btn => btn.onclick = () => {
+    selected = Number(btn.dataset.val);
+    opts.forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    enviarBtn.disabled = false;
+  });
+
+  enviarBtn.onclick = async () => {
+    if (!selected) return;
+    enviarBtn.disabled = true;
+    enviarBtn.textContent = "Enviando...";
+    const observation = document.getElementById("obs").value.trim();
+    try {
+      await addDoc(collection(db, "companies", slug, "responses"), {
+        score: selected,
+        observation: observation || null,
+        createdAt: serverTimestamp()
+      });
+      document.getElementById("survey-box").style.display = "none";
+      document.getElementById("thanks-box").style.display = "block";
+    } catch (e) {
+      enviarBtn.disabled = false;
+      enviarBtn.textContent = "Enviar avaliação";
+      alert("Não foi possível enviar. Tente novamente.");
+    }
+  };
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+render();
 </script>
 </body>
 </html>
