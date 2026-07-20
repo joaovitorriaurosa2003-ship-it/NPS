@@ -160,6 +160,9 @@ import {
   getFirestore, collection, doc, getDoc, getDocs, addDoc, deleteDoc, setDoc,
   query, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 // ======================================================================
 // PREENCHA COM AS CREDENCIAIS DO SEU PROJETO FIREBASE
@@ -178,6 +181,7 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 // ----------------------------------------------------------------------
 // Escala Likert de 5 pontos
@@ -196,6 +200,62 @@ function slugify(str) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
+
+// Lê um arquivo de imagem e devolve { dataUrl, dominantColor } — a cor
+// dominante é calculada amostrando os pixels num canvas, ignorando tons
+// quase brancos/pretos e pixels transparentes, pra pegar a cor "de marca"
+// do logo em vez do fundo.
+function readLogoFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 60;
+        const canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, size, size);
+        let r = 0, g = 0, b = 0, n = 0;
+        try {
+          const data = ctx.getImageData(0, 0, size, size).data;
+          for (let i = 0; i < data.length; i += 4) {
+            const [pr, pg, pb, pa] = [data[i], data[i+1], data[i+2], data[i+3]];
+            if (pa < 100) continue;
+            const sum = pr + pg + pb;
+            if (sum > 720 || sum < 45) continue; // ignora quase-branco / quase-preto
+            r += pr; g += pg; b += pb; n++;
+          }
+        } catch (e) { /* imagem de outra origem sem CORS: mantém cor padrão */ }
+        const toHex = v => v.toString(16).padStart(2, "0");
+        const dominantColor = n > 0
+          ? "#" + toHex(Math.round(r/n)) + toHex(Math.round(g/n)) + toHex(Math.round(b/n))
+          : null;
+        resolve({ dataUrl: reader.result, dominantColor });
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadLogo(slug, file) {
+  const ext = (file.name.split(".").pop() || "png").toLowerCase();
+  const fileRef = ref(storage, `logos/${slug}-${Date.now()}.${ext}`);
+  await uploadBytes(fileRef, file);
+  return getDownloadURL(fileRef);
+}
+// Cabeçalho com a logo da empresa (se houver) acima do nome, usado nas
+// páginas públicas de pesquisa.
+function companyHeaderHtml(company) {
+  const logo = company.logoUrl
+    ? `<img src="${company.logoUrl}" alt="${escapeHtml(company.name)}" style="max-height:64px;max-width:220px;object-fit:contain;margin-bottom:14px" />`
+    : "";
+  return `${logo}`;
+}
+
 function fmtDate(ts) {
   if (!ts) return "-";
   const d = ts.toDate ? ts.toDate() : new Date(ts);
@@ -291,6 +351,10 @@ async function render() {
     if (!currentUser()) return renderLogin();
     return renderNovaEmpresa();
   }
+  if (parts[0] === "admin" && parts[1] === "empresa" && parts[2] && parts[3] === "editar") {
+    if (!currentUser()) return renderLogin();
+    return renderEditarEmpresa(parts[2]);
+  }
   if (parts[0] === "admin" && parts[1] === "empresa" && parts[2] && parts[3] === "pos-venda") {
     if (!currentUser()) return renderLogin();
     return renderPosVendaResultados(parts[2]);
@@ -356,7 +420,14 @@ async function renderAdminDashboard() {
   const origin = window.location.origin + window.location.pathname;
   const rows = companies.map(c => `
     <tr>
-      <td><strong>${escapeHtml(c.name)}</strong><br><span class="muted">${c.slug}</span></td>
+      <td>
+        <div class="row" style="gap:10px;flex-wrap:nowrap">
+          <div style="width:32px;height:32px;border-radius:8px;border:1px solid var(--border);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#F5F4F0">
+            ${c.logoUrl ? `<img src="${c.logoUrl}" style="max-width:100%;max-height:100%" />` : ""}
+          </div>
+          <div><strong>${escapeHtml(c.name)}</strong><br><span class="muted">${c.slug}</span></div>
+        </div>
+      </td>
       <td><span class="pill" style="background:${c.primaryColor || "#2E2B28"}22;color:${c.primaryColor || "#2E2B28"}">●</span></td>
       <td>${fmtDate(c.createdAt)}</td>
       <td>
@@ -373,7 +444,10 @@ async function renderAdminDashboard() {
           </div>
         </div>
       </td>
-      <td><button class="danger" data-del="${c.id}">Excluir</button></td>
+      <td class="row">
+        <button class="secondary" data-edit="${c.slug}">Editar</button>
+        <button class="danger" data-del="${c.id}">Excluir</button>
+      </td>
     </tr>
   `).join("");
 
@@ -401,6 +475,7 @@ async function renderAdminDashboard() {
   document.getElementById("nova-btn").onclick = () => navigate("#/admin/nova");
   app.querySelectorAll("[data-view]").forEach(b => b.onclick = () => navigate("#/admin/empresa/" + b.dataset.view));
   app.querySelectorAll("[data-view-pv]").forEach(b => b.onclick = () => navigate("#/admin/empresa/" + b.dataset.viewPv + "/pos-venda"));
+  app.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => navigate("#/admin/empresa/" + b.dataset.edit + "/editar"));
   app.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => {
     navigator.clipboard.writeText(b.dataset.copy);
     b.textContent = "Copiado!";
@@ -413,58 +488,119 @@ async function renderAdminDashboard() {
   });
 }
 
-// ------------------------- NOVA EMPRESA ---------------------------------
-function renderNovaEmpresa() {
+// ------------------------- NOVA / EDITAR EMPRESA --------------------------
+function renderNovaEmpresa() { renderEmpresaForm(null); }
+async function renderEditarEmpresa(slug) {
+  const snap = await getDoc(doc(db, "companies", slug));
+  if (!snap.exists()) { navigate("#/admin"); return; }
+  renderEmpresaForm({ id: snap.id, ...snap.data() });
+}
+
+function renderEmpresaForm(existing) {
+  const isEdit = !!existing;
+  let pendingFile = null;       // arquivo de logo selecionado, ainda não enviado
+  let colorAutoSet = !isEdit;   // se a cor pode ser sobrescrita automaticamente pela logo
+
   app.innerHTML = `
     <div class="wrap">
       <div class="top-bar">
         <div class="logo">Pesquisas de Satisfação · Admin</div>
         <a href="#/admin"><button class="secondary">Voltar</button></a>
       </div>
-      <h1>Nova empresa</h1>
-      <p class="subtitle">Cria a página pública de pesquisa de satisfação para o cliente.</p>
+      <h1>${isEdit ? "Editar empresa" : "Nova empresa"}</h1>
+      <p class="subtitle">${isEdit ? "Atualize a logo, a cor ou o nome da empresa." : "Cria a página pública de pesquisa de satisfação para o cliente."}</p>
       <div class="card">
         <label>Nome da empresa</label>
-        <input type="text" id="c-name" placeholder="Ex: Panificadora Pão Delícia" />
-        <label>Endereço da página (gerado automaticamente, pode editar)</label>
-        <input type="text" id="c-slug" placeholder="pao-delicia" />
+        <input type="text" id="c-name" placeholder="Ex: Panificadora Pão Delícia" value="${isEdit ? escapeHtml(existing.name) : ""}" />
+        <label>Endereço da página ${isEdit ? "" : "(gerado automaticamente, pode editar)"}</label>
+        <input type="text" id="c-slug" placeholder="pao-delicia" value="${isEdit ? existing.slug : ""}" ${isEdit ? "disabled" : ""} />
+
+        <label>Logo da empresa</label>
+        <div class="row" style="align-items:flex-start;margin-bottom:16px">
+          <div id="logo-preview" style="width:72px;height:72px;border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#F5F4F0;flex-shrink:0">
+            ${existing && existing.logoUrl ? `<img src="${existing.logoUrl}" style="max-width:100%;max-height:100%" />` : `<span class="muted" style="font-size:11px">sem logo</span>`}
+          </div>
+          <div style="flex:1">
+            <input type="file" id="c-logo" accept="image/*" style="margin-bottom:6px" />
+            <p class="muted" style="font-size:12px;margin:0">A cor principal da página é sugerida automaticamente a partir da logo — você pode ajustar depois.</p>
+          </div>
+        </div>
+
         <label>Cor principal</label>
-        <input type="color" id="c-color" value="#2E2B28" />
+        <input type="color" id="c-color" value="${isEdit ? (existing.primaryColor || "#2E2B28") : "#2E2B28"}" />
+
         <div class="error" id="nova-error" style="display:none"></div>
-        <button id="salvar-btn">Criar empresa</button>
+        <button id="salvar-btn">${isEdit ? "Salvar alterações" : "Criar empresa"}</button>
       </div>
     </div>
   `;
   const nameEl = document.getElementById("c-name");
   const slugEl = document.getElementById("c-slug");
-  let slugTouched = false;
-  slugEl.addEventListener("input", () => slugTouched = true);
-  nameEl.addEventListener("input", () => {
-    if (!slugTouched) slugEl.value = slugify(nameEl.value);
+  const colorEl = document.getElementById("c-color");
+  const logoInput = document.getElementById("c-logo");
+  const previewEl = document.getElementById("logo-preview");
+
+  if (!isEdit) {
+    let slugTouched = false;
+    slugEl.addEventListener("input", () => slugTouched = true);
+    nameEl.addEventListener("input", () => {
+      if (!slugTouched) slugEl.value = slugify(nameEl.value);
+    });
+  }
+
+  colorEl.addEventListener("input", () => { colorAutoSet = false; });
+
+  logoInput.addEventListener("change", async () => {
+    const file = logoInput.files[0];
+    if (!file) return;
+    pendingFile = file;
+    const { dataUrl, dominantColor } = await readLogoFile(file);
+    previewEl.innerHTML = `<img src="${dataUrl}" style="max-width:100%;max-height:100%" />`;
+    if (dominantColor && colorAutoSet) colorEl.value = dominantColor;
   });
 
   document.getElementById("salvar-btn").onclick = async () => {
     const name = nameEl.value.trim();
-    const slug = slugify(slugEl.value);
-    const color = document.getElementById("c-color").value;
+    const slug = isEdit ? existing.slug : slugify(slugEl.value);
+    const color = colorEl.value;
     const errEl = document.getElementById("nova-error");
+    const btn = document.getElementById("salvar-btn");
     errEl.style.display = "none";
     if (!name || !slug) {
       errEl.textContent = "Preencha o nome da empresa.";
       errEl.style.display = "block";
       return;
     }
-    const existing = await getDoc(doc(db, "companies", slug));
-    if (existing.exists()) {
-      errEl.textContent = "Já existe uma empresa com esse endereço. Escolha outro.";
-      errEl.style.display = "block";
-      return;
+    if (!isEdit) {
+      const dup = await getDoc(doc(db, "companies", slug));
+      if (dup.exists()) {
+        errEl.textContent = "Já existe uma empresa com esse endereço. Escolha outro.";
+        errEl.style.display = "block";
+        return;
+      }
     }
-    // usa o slug como ID do documento, permitindo busca direta na página pública
-    await setDoc(doc(db, "companies", slug), {
-      name, slug, primaryColor: color, createdAt: serverTimestamp()
-    });
-    navigate("#/admin");
+    btn.disabled = true;
+    btn.textContent = "Salvando...";
+    try {
+      let logoUrl = isEdit ? (existing.logoUrl || null) : null;
+      if (pendingFile) {
+        btn.textContent = "Enviando logo...";
+        logoUrl = await uploadLogo(slug, pendingFile);
+      }
+      const data = { name, slug, primaryColor: color, logoUrl };
+      if (isEdit) {
+        await setDoc(doc(db, "companies", slug), data, { merge: true });
+      } else {
+        data.createdAt = serverTimestamp();
+        await setDoc(doc(db, "companies", slug), data);
+      }
+      navigate("#/admin");
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = isEdit ? "Salvar alterações" : "Criar empresa";
+      errEl.textContent = "Não foi possível salvar. Tente novamente.";
+      errEl.style.display = "block";
+    }
   };
 }
 
@@ -551,6 +687,7 @@ async function renderPublicSurvey(slug) {
   app.innerHTML = `
     <div class="wrap">
       <div id="survey-box">
+        ${companyHeaderHtml(company)}
         <h1>${escapeHtml(company.name)}</h1>
         <p class="subtitle">Como foi sua experiência com a gente? Sua opinião nos ajuda a melhorar.</p>
         <div class="card">
@@ -665,6 +802,7 @@ async function renderPublicPosVenda(slug) {
   app.innerHTML = `
     <div class="wrap">
       <div id="survey-box">
+        ${companyHeaderHtml(company)}
         <h1>Pesquisa de Experiência — ${escapeHtml(company.name)}</h1>
         <p class="subtitle">Olá! 😊 Sua opinião é muito importante para que possamos melhorar cada vez mais nosso atendimento. Leva menos de 1 minuto para responder.</p>
         <div class="card">
