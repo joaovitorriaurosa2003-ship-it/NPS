@@ -230,7 +230,14 @@ function renderLogin() {
       await signInWithEmailAndPassword(auth, email, pass);
       navigate("#/admin");
     } catch (e) {
-      errEl.textContent = "Não foi possível entrar. Confira e-mail e senha.";
+      const map = {
+        "auth/unauthorized-domain": "Este domínio não está autorizado no Firebase Auth (Authentication > Settings > Authorized domains).",
+        "auth/invalid-credential": "E-mail ou senha incorretos.",
+        "auth/user-not-found": "Não existe usuário com esse e-mail em Authentication > Users.",
+        "auth/wrong-password": "Senha incorreta.",
+        "auth/too-many-requests": "Muitas tentativas. Aguarde um pouco e tente de novo."
+      };
+      errEl.textContent = map[e.code] || ("Erro ao entrar: " + e.code);
       errEl.style.display = "block";
     }
   };
