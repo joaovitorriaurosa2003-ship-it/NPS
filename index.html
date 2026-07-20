@@ -102,6 +102,50 @@
   .center-screen { min-height: 70vh; display: flex; align-items: center; justify-content: center; }
   .link-box { background: #F5F4F0; border-radius: 8px; padding: 10px 12px; font-size: 13px; word-break: break-all; margin-bottom: 12px; }
   footer.note { text-align: center; font-size: 12px; color: var(--text-secondary); margin-top: 24px; }
+
+  /* ---- Perguntas da pesquisa de pós-venda ---- */
+  .q-block { margin-bottom: 28px; }
+  .q-block .q-label { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+  .q-block .q-helper { font-size: 12px; color: var(--text-secondary); margin: 0 0 12px; }
+  .stars-row { display: flex; gap: 6px; }
+  .stars-row button {
+    background: none; border: none; padding: 2px; font-size: 34px; line-height: 1;
+    color: #DCD9D0; cursor: pointer;
+  }
+  .stars-row button.filled { color: #E0A82E; }
+  .stars-sub { font-size: 12px; color: var(--text-secondary); margin-top: 6px; min-height: 16px; }
+  .choice-list { display: flex; flex-direction: column; gap: 8px; }
+  .choice-list button {
+    background: #fff; border: 2px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; text-align: left; color: var(--text); font-weight: 500; font-size: 14px;
+  }
+  .choice-list button.selected { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, white); }
+  .nps-grid { display: grid; grid-template-columns: repeat(11, 1fr); gap: 6px; }
+  .nps-grid button {
+    background: #fff; border: 2px solid var(--border); border-radius: 8px;
+    padding: 10px 0; text-align: center; color: var(--text); font-size: 14px; font-weight: 600;
+  }
+  .nps-grid button.selected { border-color: var(--primary); background: var(--primary); color: #fff; }
+  .nps-caption { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); margin-top: 6px; }
+  .survey-links { display: flex; flex-direction: column; gap: 4px; }
+  .survey-links .sl-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .survey-links .sl-tag { font-size: 11px; font-weight: 700; color: var(--text-secondary); width: 76px; }
+
+  @media (max-width: 480px) {
+    .wrap { padding: 20px 14px 60px; }
+    .card { padding: 18px; }
+    h1 { font-size: 20px; }
+    .likert { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .likert button.opt { padding: 10px 2px 8px; }
+    .likert button.opt .emoji { font-size: 22px; }
+    .likert button.opt .lbl { font-size: 9px; }
+    .stars-row button { font-size: 28px; }
+    .nps-grid { grid-template-columns: repeat(6, 1fr); }
+    .stat-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-grid .stat { padding: 10px; }
+    .stat-grid .stat .num { font-size: 20px; }
+    table { font-size: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -161,6 +205,55 @@ function likertOf(score) {
   return LIKERT.find(l => l.value === Number(score)) || LIKERT[2];
 }
 
+// ----------------------------------------------------------------------
+// Pesquisa de pós-venda / experiência — perguntas fixas, usadas por
+// qualquer empresa. {empresa} é substituído pelo nome cadastrado.
+// ----------------------------------------------------------------------
+const POSVENDA_QUESTIONS = [
+  { id: "q1", type: "stars", required: true,
+    label: "Como você avalia sua experiência geral na {empresa}?",
+    starLabels: ["Muito ruim", "Ruim", "Regular", "Boa", "Excelente"] },
+  { id: "q2", type: "stars", required: true,
+    label: "Como foi o atendimento recebido?" },
+  { id: "q3", type: "choice", required: true,
+    label: "Você encontrou facilmente o que procurava?",
+    options: ["Sim", "Encontrei algo parecido", "Não encontrei"] },
+  { id: "q4", type: "stars", required: true,
+    label: "Como você avalia nossos produtos?",
+    helper: "Pode considerar: qualidade • variedade • apresentação" },
+  { id: "q5", type: "choice", required: true,
+    label: "Durante o atendimento você se sentiu...",
+    options: ["Muito bem acolhido", "Bem atendido", "Atendimento normal", "Pouco acolhido", "Mal atendido"] },
+  { id: "q6", type: "nps", required: true,
+    label: "Em uma escala de 0 a 10, qual a probabilidade de indicar a {empresa} para um amigo?" },
+  { id: "q7", type: "text", required: false,
+    label: "Se pudesse melhorar apenas UMA coisa na sua experiência, o que seria?" }
+];
+function fillCompanyName(str, name) { return str.replace("{empresa}", name); }
+function npsLevelOf(score) {
+  score = Number(score);
+  if (score >= 9) return { key: "promotor", label: "Promotor", color: "#2E7D32" };
+  if (score >= 7) return { key: "neutro", label: "Neutro", color: "#B8976A" };
+  return { key: "detrator", label: "Detrator", color: "#C0392B" };
+}
+
+// Conta regressiva na tela de "obrigado" das pesquisas públicas: mostra o
+// tempo restante, atualiza o botão de retorno manual e, ao zerar, recarrega
+// a própria tela (limpando as respostas) chamando render() de novo.
+function startReturnTimer(seconds = 15) {
+  let remaining = seconds;
+  const timerEl = document.getElementById("timer-txt");
+  const voltarBtn = document.getElementById("voltar-btn");
+  const update = () => { if (timerEl) timerEl.textContent = `Voltando para a avaliação em ${remaining}s...`; };
+  update();
+  const interval = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) { clearInterval(interval); render(); return; }
+    update();
+  }, 1000);
+  if (voltarBtn) voltarBtn.onclick = () => { clearInterval(interval); render(); };
+}
+
 const app = document.getElementById("app");
 
 // ----------------------------------------------------------------------
@@ -169,8 +262,10 @@ const app = document.getElementById("app");
 // #/login                     -> tela de login do admin
 // #/admin                     -> lista de empresas
 // #/admin/nova                -> cadastrar nova empresa
-// #/admin/empresa/{slug}      -> respostas da empresa
-// #/empresa/{slug}            -> página pública de pesquisa
+// #/admin/empresa/{slug}                -> respostas do NPS da empresa
+// #/admin/empresa/{slug}/pos-venda      -> respostas do pós-venda da empresa
+// #/empresa/{slug}                      -> página pública do NPS
+// #/empresa/{slug}/pos-venda            -> página pública do pós-venda
 // ----------------------------------------------------------------------
 window.addEventListener("hashchange", render);
 onAuthStateChanged(auth, () => render());
@@ -183,6 +278,9 @@ async function render() {
   const hash = window.location.hash.replace(/^#\/?/, "");
   const parts = hash.split("/").filter(Boolean);
 
+  if (parts[0] === "empresa" && parts[1] && parts[2] === "pos-venda") {
+    return renderPublicPosVenda(parts[1]);
+  }
   if (parts[0] === "empresa" && parts[1]) {
     return renderPublicSurvey(parts[1]);
   }
@@ -192,6 +290,10 @@ async function render() {
   if (parts[0] === "admin" && parts[1] === "nova") {
     if (!currentUser()) return renderLogin();
     return renderNovaEmpresa();
+  }
+  if (parts[0] === "admin" && parts[1] === "empresa" && parts[2] && parts[3] === "pos-venda") {
+    if (!currentUser()) return renderLogin();
+    return renderPosVendaResultados(parts[2]);
   }
   if (parts[0] === "admin" && parts[1] === "empresa" && parts[2]) {
     if (!currentUser()) return renderLogin();
@@ -251,16 +353,27 @@ async function renderAdminDashboard() {
   const companies = [];
   snap.forEach(d => companies.push({ id: d.id, ...d.data() }));
 
+  const origin = window.location.origin + window.location.pathname;
   const rows = companies.map(c => `
     <tr>
       <td><strong>${escapeHtml(c.name)}</strong><br><span class="muted">${c.slug}</span></td>
       <td><span class="pill" style="background:${c.primaryColor || "#2E2B28"}22;color:${c.primaryColor || "#2E2B28"}">●</span></td>
       <td>${fmtDate(c.createdAt)}</td>
-      <td class="row">
-        <button class="secondary" data-copy="${window.location.origin}${window.location.pathname}#/empresa/${c.slug}">Copiar link</button>
-        <button class="secondary" data-view="${c.slug}">Ver respostas</button>
-        <button class="danger" data-del="${c.id}">Excluir</button>
+      <td>
+        <div class="survey-links">
+          <div class="sl-row">
+            <span class="sl-tag">NPS</span>
+            <button class="secondary" data-copy="${origin}#/empresa/${c.slug}">Copiar link</button>
+            <button class="secondary" data-view="${c.slug}">Ver respostas</button>
+          </div>
+          <div class="sl-row">
+            <span class="sl-tag">Pós-venda</span>
+            <button class="secondary" data-copy="${origin}#/empresa/${c.slug}/pos-venda">Copiar link</button>
+            <button class="secondary" data-view-pv="${c.slug}">Ver respostas</button>
+          </div>
+        </div>
       </td>
+      <td><button class="danger" data-del="${c.id}">Excluir</button></td>
     </tr>
   `).join("");
 
@@ -277,7 +390,7 @@ async function renderAdminDashboard() {
       ${companies.length === 0 ? `<div class="card"><p class="muted">Nenhuma empresa cadastrada ainda. Clique em "Nova empresa" para criar a primeira página de pesquisa.</p></div>` : `
       <div class="card" style="padding:0">
         <table>
-          <thead><tr><th>Empresa</th><th>Cor</th><th>Criada em</th><th>Ações</th></tr></thead>
+          <thead><tr><th>Empresa</th><th>Cor</th><th>Criada em</th><th>Pesquisas</th><th></th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`}
@@ -287,6 +400,7 @@ async function renderAdminDashboard() {
   document.getElementById("logout-btn").onclick = async () => { await signOut(auth); navigate("#/login"); };
   document.getElementById("nova-btn").onclick = () => navigate("#/admin/nova");
   app.querySelectorAll("[data-view]").forEach(b => b.onclick = () => navigate("#/admin/empresa/" + b.dataset.view));
+  app.querySelectorAll("[data-view-pv]").forEach(b => b.onclick = () => navigate("#/admin/empresa/" + b.dataset.viewPv + "/pos-venda"));
   app.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => {
     navigator.clipboard.writeText(b.dataset.copy);
     b.textContent = "Copiado!";
@@ -457,6 +571,8 @@ async function renderPublicSurvey(slug) {
         <div class="big">✅</div>
         <h2>Obrigado pelo retorno!</h2>
         <p class="muted">Sua avaliação foi registrada com sucesso.</p>
+        <button id="voltar-btn" class="secondary" style="margin-top:16px">Voltar para a avaliação</button>
+        <p class="muted" id="timer-txt" style="margin-top:10px;font-size:12px"></p>
       </div>
     </div>
   `;
@@ -483,12 +599,237 @@ async function renderPublicSurvey(slug) {
       });
       document.getElementById("survey-box").style.display = "none";
       document.getElementById("thanks-box").style.display = "block";
+      startReturnTimer(15);
     } catch (e) {
       enviarBtn.disabled = false;
       enviarBtn.textContent = "Enviar avaliação";
       alert("Não foi possível enviar. Tente novamente.");
     }
   };
+}
+
+// ------------------------- PÁGINA PÚBLICA: PÓS-VENDA ---------------------
+async function renderPublicPosVenda(slug) {
+  app.innerHTML = `<div class="center-screen"><p class="muted">Carregando...</p></div>`;
+  const compSnap = await getDoc(doc(db, "companies", slug));
+  if (!compSnap.exists()) {
+    app.innerHTML = `<div class="center-screen"><p>Página não encontrada.</p></div>`;
+    return;
+  }
+  const company = compSnap.data();
+  document.documentElement.style.setProperty("--primary", company.primaryColor || "#2E2B28");
+  document.title = "Pesquisa de experiência — " + company.name;
+
+  const answers = {};
+
+  const questionsHtml = POSVENDA_QUESTIONS.map((q, idx) => {
+    const label = fillCompanyName(q.label, company.name);
+    if (q.type === "stars") {
+      return `
+        <div class="q-block" data-q="${q.id}">
+          <p class="q-label">${idx + 1}. ${escapeHtml(label)}</p>
+          ${q.helper ? `<p class="q-helper">${escapeHtml(q.helper)}</p>` : ""}
+          <div class="stars-row" data-stars="${q.id}">
+            ${[1,2,3,4,5].map(v => `<button type="button" data-val="${v}">★</button>`).join("")}
+          </div>
+          <p class="stars-sub" id="sub-${q.id}"></p>
+        </div>`;
+    }
+    if (q.type === "choice") {
+      return `
+        <div class="q-block" data-q="${q.id}">
+          <p class="q-label">${idx + 1}. ${escapeHtml(label)}</p>
+          <div class="choice-list" data-choice="${q.id}">
+            ${q.options.map(opt => `<button type="button" data-val="${escapeHtml(opt)}">${escapeHtml(opt)}</button>`).join("")}
+          </div>
+        </div>`;
+    }
+    if (q.type === "nps") {
+      return `
+        <div class="q-block" data-q="${q.id}">
+          <p class="q-label">${idx + 1}. ${escapeHtml(label)}</p>
+          <div class="nps-grid" data-nps="${q.id}">
+            ${Array.from({length:11}, (_,v) => `<button type="button" data-val="${v}">${v}</button>`).join("")}
+          </div>
+          <div class="nps-caption"><span>Nada provável</span><span>Extremamente provável</span></div>
+        </div>`;
+    }
+    // text
+    return `
+      <div class="q-block" data-q="${q.id}">
+        <p class="q-label">${idx + 1}. ${escapeHtml(label)}</p>
+        <textarea data-text="${q.id}" placeholder="Resposta aberta"></textarea>
+      </div>`;
+  }).join("");
+
+  app.innerHTML = `
+    <div class="wrap">
+      <div id="survey-box">
+        <h1>Pesquisa de Experiência — ${escapeHtml(company.name)}</h1>
+        <p class="subtitle">Olá! 😊 Sua opinião é muito importante para que possamos melhorar cada vez mais nosso atendimento. Leva menos de 1 minuto para responder.</p>
+        <div class="card">
+          ${questionsHtml}
+          <button id="enviar-btn" disabled style="width:100%">Enviar avaliação</button>
+        </div>
+      </div>
+      <div id="thanks-box" style="display:none" class="thanks">
+        <div class="big">✅</div>
+        <h2>Obrigado pelo retorno!</h2>
+        <p class="muted">Sua avaliação foi registrada com sucesso.</p>
+        <button id="voltar-btn" class="secondary" style="margin-top:16px">Voltar para a avaliação</button>
+        <p class="muted" id="timer-txt" style="margin-top:10px;font-size:12px"></p>
+      </div>
+    </div>
+  `;
+
+  const enviarBtn = document.getElementById("enviar-btn");
+
+  function checkComplete() {
+    const ok = POSVENDA_QUESTIONS.every(q => !q.required || answers[q.id] !== undefined && answers[q.id] !== "");
+    enviarBtn.disabled = !ok;
+  }
+
+  // estrelas
+  app.querySelectorAll("[data-stars]").forEach(row => {
+    const qid = row.dataset.stars;
+    const q = POSVENDA_QUESTIONS.find(x => x.id === qid);
+    const subEl = document.getElementById("sub-" + qid);
+    row.querySelectorAll("button").forEach(btn => btn.onclick = () => {
+      const val = Number(btn.dataset.val);
+      answers[qid] = val;
+      row.querySelectorAll("button").forEach(b => b.classList.toggle("filled", Number(b.dataset.val) <= val));
+      if (q.starLabels) subEl.textContent = q.starLabels[val - 1];
+      checkComplete();
+    });
+  });
+
+  // múltipla escolha
+  app.querySelectorAll("[data-choice]").forEach(row => {
+    const qid = row.dataset.choice;
+    row.querySelectorAll("button").forEach(btn => btn.onclick = () => {
+      answers[qid] = btn.dataset.val;
+      row.querySelectorAll("button").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      checkComplete();
+    });
+  });
+
+  // escala nps 0-10
+  app.querySelectorAll("[data-nps]").forEach(row => {
+    const qid = row.dataset.nps;
+    row.querySelectorAll("button").forEach(btn => btn.onclick = () => {
+      answers[qid] = Number(btn.dataset.val);
+      row.querySelectorAll("button").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      checkComplete();
+    });
+  });
+
+  // texto aberto
+  app.querySelectorAll("[data-text]").forEach(ta => {
+    ta.oninput = () => { answers[ta.dataset.text] = ta.value.trim(); checkComplete(); };
+  });
+
+  enviarBtn.onclick = async () => {
+    enviarBtn.disabled = true;
+    enviarBtn.textContent = "Enviando...";
+    try {
+      await addDoc(collection(db, "companies", slug, "posvenda_responses"), {
+        answers, createdAt: serverTimestamp()
+      });
+      document.getElementById("survey-box").style.display = "none";
+      document.getElementById("thanks-box").style.display = "block";
+      startReturnTimer(15);
+    } catch (e) {
+      enviarBtn.disabled = false;
+      enviarBtn.textContent = "Enviar avaliação";
+      alert("Não foi possível enviar. Tente novamente.");
+    }
+  };
+}
+
+// ------------------------- RESULTADOS: PÓS-VENDA (ADMIN) -----------------
+async function renderPosVendaResultados(slug) {
+  app.innerHTML = `<div class="wrap wide"><p class="muted">Carregando...</p></div>`;
+  const compSnap = await getDoc(doc(db, "companies", slug));
+  if (!compSnap.exists()) {
+    app.innerHTML = `<div class="wrap"><p>Empresa não encontrada.</p><a href="#/admin">Voltar</a></div>`;
+    return;
+  }
+  const company = compSnap.data();
+  const respSnap = await getDocs(query(collection(db, "companies", slug, "posvenda_responses"), orderBy("createdAt", "desc")));
+  const responses = [];
+  respSnap.forEach(d => responses.push({ id: d.id, ...d.data() }));
+  const total = responses.length;
+
+  const blocks = POSVENDA_QUESTIONS.map((q, idx) => {
+    const label = fillCompanyName(q.label, company.name);
+    const vals = responses.map(r => r.answers ? r.answers[q.id] : undefined).filter(v => v !== undefined && v !== "");
+
+    if (q.type === "stars") {
+      const avg = vals.length ? (vals.reduce((s, v) => s + Number(v), 0) / vals.length).toFixed(1) : "-";
+      const counts = [1,2,3,4,5].map(v => vals.filter(x => Number(x) === v).length);
+      const max = Math.max(1, ...counts);
+      const rows = [1,2,3,4,5].map((v, i) => `
+        <div class="bar-row">
+          <span class="emoji" style="width:44px">${"★".repeat(v)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${(counts[i]/max)*100}%"></div></div>
+          <span class="count">${counts[i]}</span>
+        </div>`).join("");
+      return `<div class="card"><h2>${idx+1}. ${escapeHtml(label)} <span class="muted" style="font-weight:400">— média ${avg}</span></h2>${rows}</div>`;
+    }
+    if (q.type === "choice") {
+      const counts = q.options.map(opt => vals.filter(x => x === opt).length);
+      const max = Math.max(1, ...counts);
+      const rows = q.options.map((opt, i) => `
+        <div class="bar-row">
+          <span class="muted" style="width:170px;font-size:12px">${escapeHtml(opt)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${(counts[i]/max)*100}%"></div></div>
+          <span class="count">${counts[i]}</span>
+        </div>`).join("");
+      return `<div class="card"><h2>${idx+1}. ${escapeHtml(label)}</h2>${rows}</div>`;
+    }
+    if (q.type === "nps") {
+      const avg = vals.length ? (vals.reduce((s, v) => s + Number(v), 0) / vals.length).toFixed(1) : "-";
+      const promotores = vals.filter(v => v >= 9).length;
+      const neutros = vals.filter(v => v >= 7 && v <= 8).length;
+      const detratores = vals.filter(v => v <= 6).length;
+      const pct = n => vals.length ? Math.round((n/vals.length)*100) : 0;
+      return `
+        <div class="card">
+          <h2>${idx+1}. ${escapeHtml(label)} <span class="muted" style="font-weight:400">— média ${avg}</span></h2>
+          <div class="stat-grid" style="margin-bottom:0">
+            <div class="stat"><div class="num" style="color:#2E7D32">${pct(promotores)}%</div><div class="lbl">Promotores (9–10)</div></div>
+            <div class="stat"><div class="num" style="color:#B8976A">${pct(neutros)}%</div><div class="lbl">Neutros (7–8)</div></div>
+            <div class="stat"><div class="num" style="color:#C0392B">${pct(detratores)}%</div><div class="lbl">Detratores (0–6)</div></div>
+          </div>
+        </div>`;
+    }
+    // text
+    const rows = responses.filter(r => r.answers && r.answers[q.id]).map(r => `
+      <tr><td>${escapeHtml(r.answers[q.id])}</td><td class="muted" style="width:150px">${fmtDate(r.createdAt)}</td></tr>
+    `).join("");
+    return `
+      <div class="card" style="padding:0">
+        <div style="padding:20px 20px 0"><h2>${idx+1}. ${escapeHtml(label)}</h2></div>
+        ${rows ? `<table style="padding:0 20px 20px"><tbody>${rows}</tbody></table>` : `<p class="muted" style="padding:0 20px 20px">Nenhuma resposta ainda.</p>`}
+      </div>`;
+  }).join("");
+
+  app.innerHTML = `
+    <div class="wrap wide">
+      <div class="top-bar">
+        <div class="logo">Pesquisas de Satisfação · Admin</div>
+        <a href="#/admin"><button class="secondary">Voltar</button></a>
+      </div>
+      <h1>${escapeHtml(company.name)} — Pós-venda</h1>
+      <p class="subtitle">${window.location.origin}${window.location.pathname}#/empresa/${slug}/pos-venda</p>
+      <div class="stat-grid">
+        <div class="stat"><div class="num">${total}</div><div class="lbl">Respostas</div></div>
+      </div>
+      ${total === 0 ? `<div class="card"><p class="muted">Nenhuma resposta registrada ainda.</p></div>` : blocks}
+    </div>
+  `;
 }
 
 function escapeHtml(str) {
