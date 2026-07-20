@@ -69,6 +69,9 @@
     margin-bottom: 24px;
   }
   .top-bar .logo { font-weight: 700; font-size: 16px; }
+  .nav-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .nav-tabs a { padding: 10px 4px; margin-right: 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; border-bottom: 2px solid transparent; }
+  .nav-tabs a.active { color: var(--text); border-bottom-color: var(--primary); }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
   th { color: var(--text-secondary); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -290,6 +293,15 @@ const POSVENDA_QUESTIONS = [
     label: "Se pudesse melhorar apenas UMA coisa na sua experiência, o que seria?" }
 ];
 function fillCompanyName(str, name) { return str.replace("{empresa}", name); }
+
+// Abas de navegação do painel admin (Empresas / Exportar dados)
+function adminNavHtml(active) {
+  return `
+    <div class="nav-tabs">
+      <a href="#/admin" class="${active === "empresas" ? "active" : ""}">Empresas</a>
+      <a href="#/admin/exportar" class="${active === "exportar" ? "active" : ""}">Exportar dados</a>
+    </div>`;
+}
 function npsLevelOf(score) {
   score = Number(score);
   if (score >= 9) return { key: "promotor", label: "Promotor", color: "#2E7D32" };
@@ -350,6 +362,10 @@ async function render() {
   if (parts[0] === "admin" && parts[1] === "nova") {
     if (!currentUser()) return renderLogin();
     return renderNovaEmpresa();
+  }
+  if (parts[0] === "admin" && parts[1] === "exportar") {
+    if (!currentUser()) return renderLogin();
+    return renderExportar();
   }
   if (parts[0] === "admin" && parts[1] === "empresa" && parts[2] && parts[3] === "editar") {
     if (!currentUser()) return renderLogin();
@@ -457,6 +473,7 @@ async function renderAdminDashboard() {
         <div class="logo">Pesquisas de Satisfação · Admin</div>
         <button class="secondary" id="logout-btn">Sair</button>
       </div>
+      ${adminNavHtml("empresas")}
       <div class="row between" style="margin-bottom:20px">
         <h1 style="margin:0">Empresas</h1>
         <button id="nova-btn">+ Nova empresa</button>
@@ -968,6 +985,109 @@ async function renderPosVendaResultados(slug) {
       ${total === 0 ? `<div class="card"><p class="muted">Nenhuma resposta registrada ainda.</p></div>` : blocks}
     </div>
   `;
+}
+
+// ------------------------- EXPORTAR DADOS (ADMIN) -------------------------
+function csvEscape(val) {
+  const s = val === null || val === undefined ? "" : String(val);
+  if (/[",\n;]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+function downloadCsv(filename, rows) {
+  const csv = rows.map(row => row.map(csvEscape).join(";")).join("\r\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }); // BOM p/ acentos abrirem certo no Excel
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function splitDateTime(ts) {
+  if (!ts) return ["-", "-"];
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return [
+    d.toLocaleDateString("pt-BR"),
+    d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+  ];
+}
+
+async function renderExportar() {
+  app.innerHTML = `<div class="wrap wide"><p class="muted">Carregando...</p></div>`;
+  const snap = await getDocs(query(collection(db, "companies"), orderBy("name", "asc")));
+  const companies = [];
+  snap.forEach(d => companies.push({ id: d.id, ...d.data() }));
+
+  app.innerHTML = `
+    <div class="wrap wide">
+      <div class="top-bar">
+        <div class="logo">Pesquisas de Satisfação · Admin</div>
+        <button class="secondary" id="logout-btn">Sair</button>
+      </div>
+      ${adminNavHtml("exportar")}
+      <h1>Exportar dados</h1>
+      <p class="subtitle">Baixe as respostas em CSV (abre direto no Excel). Cada linha vem com data e hora do envio.</p>
+
+      ${companies.length === 0 ? `<div class="card"><p class="muted">Cadastre uma empresa primeiro.</p></div>` : `
+      <div class="card">
+        <label>Empresa</label>
+        <select id="exp-empresa">
+          ${companies.map(c => `<option value="${c.slug}">${escapeHtml(c.name)}</option>`).join("")}
+        </select>
+        <label>Pesquisa</label>
+        <select id="exp-tipo">
+          <option value="nps">NPS (5 emojis)</option>
+          <option value="posvenda">Pós-venda / Experiência</option>
+        </select>
+        <div class="error" id="exp-error" style="display:none"></div>
+        <button id="exp-btn">Exportar CSV</button>
+      </div>`}
+    </div>
+  `;
+
+  document.getElementById("logout-btn").onclick = async () => { await signOut(auth); navigate("#/login"); };
+  const btn = document.getElementById("exp-btn");
+  if (!btn) return;
+
+  btn.onclick = async () => {
+    const slug = document.getElementById("exp-empresa").value;
+    const tipo = document.getElementById("exp-tipo").value;
+    const errEl = document.getElementById("exp-error");
+    errEl.style.display = "none";
+    btn.disabled = true;
+    btn.textContent = "Gerando arquivo...";
+    try {
+      const company = companies.find(c => c.slug === slug);
+      if (tipo === "nps") {
+        const snap = await getDocs(query(collection(db, "companies", slug, "responses"), orderBy("createdAt", "asc")));
+        const rows = [["Data", "Hora", "Nota (1-5)", "Classificação", "Observação"]];
+        snap.forEach(d => {
+          const r = d.data();
+          const [data, hora] = splitDateTime(r.createdAt);
+          rows.push([data, hora, r.score, likertOf(r.score).label, r.observation || ""]);
+        });
+        if (rows.length === 1) { errEl.textContent = "Ainda não há respostas de NPS para essa empresa."; errEl.style.display = "block"; }
+        else downloadCsv(`${slug}-nps.csv`, rows);
+      } else {
+        const snap = await getDocs(query(collection(db, "companies", slug, "posvenda_responses"), orderBy("createdAt", "asc")));
+        const headers = ["Data", "Hora", ...POSVENDA_QUESTIONS.map((q, i) => `Q${i+1} - ${fillCompanyName(q.label, company.name)}`)];
+        const rows = [headers];
+        snap.forEach(d => {
+          const r = d.data();
+          const [data, hora] = splitDateTime(r.createdAt);
+          const answers = r.answers || {};
+          const line = [data, hora, ...POSVENDA_QUESTIONS.map(q => answers[q.id] !== undefined ? answers[q.id] : "")];
+          rows.push(line);
+        });
+        if (rows.length === 1) { errEl.textContent = "Ainda não há respostas de pós-venda para essa empresa."; errEl.style.display = "block"; }
+        else downloadCsv(`${slug}-pos-venda.csv`, rows);
+      }
+    } catch (e) {
+      errEl.textContent = "Não foi possível exportar. Tente novamente.";
+      errEl.style.display = "block";
+    }
+    btn.disabled = false;
+    btn.textContent = "Exportar CSV";
+  };
 }
 
 function escapeHtml(str) {
