@@ -6,7 +6,9 @@
 <title>Pesquisa de Satisfação</title>
 <style>
   :root {
-    --primary: #2E2B28;
+    --primary: #0A1F35;   /* Kaluf & Gomes - navy (padrão do admin; páginas públicas de cada empresa sobrescrevem com a cor própria) */
+    --kg-navy: #0A1F35;
+    --kg-gold: #B8976A;
     --bg: #FAFAF8;
     --card: #FFFFFF;
     --border: #E5E3DD;
@@ -67,11 +69,17 @@
   .top-bar {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 24px;
+    background: var(--kg-navy);
+    color: #fff;
+    padding: 14px 20px;
+    border-radius: 12px;
   }
-  .top-bar .logo { font-weight: 700; font-size: 16px; }
+  .top-bar .logo { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 10px; color: #fff; }
+  .top-bar button.secondary { background: transparent; border-color: rgba(255,255,255,0.35); color: #fff; }
   .nav-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
   .nav-tabs a { padding: 10px 4px; margin-right: 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; border-bottom: 2px solid transparent; }
-  .nav-tabs a.active { color: var(--text); border-bottom-color: var(--primary); }
+  .nav-tabs a.active { color: var(--kg-navy); border-bottom-color: var(--kg-gold); }
+  .kg-logo-mark { flex-shrink: 0; display: block; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
   th { color: var(--text-secondary); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -150,6 +158,7 @@
     table { font-size: 12px; }
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -294,6 +303,23 @@ const POSVENDA_QUESTIONS = [
 ];
 function fillCompanyName(str, name) { return str.replace("{empresa}", name); }
 
+// Marca geométrica "bowtie" da Kaluf & Gomes em SVG (dourado sobre navy).
+function kgLogoMarkHtml(size = 22) {
+  return `
+    <svg class="kg-logo-mark" width="${size}" height="${size}" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="44" height="44" rx="9" fill="#0A1F35"/>
+      <polygon points="9,10 22,22 9,34" fill="#B8976A"/>
+      <polygon points="35,10 22,22 35,34" fill="#B8976A"/>
+    </svg>`;
+}
+function kgTopBarHtml(showLogout) {
+  return `
+    <div class="top-bar">
+      <div class="logo">${kgLogoMarkHtml()} Kaluf &amp; Gomes · Pesquisas de Satisfação</div>
+      ${showLogout ? `<button class="secondary" id="logout-btn">Sair</button>` : ""}
+    </div>`;
+}
+
 // Abas de navegação do painel admin (Empresas / Exportar dados)
 function adminNavHtml(active) {
   return `
@@ -393,6 +419,13 @@ function renderLogin() {
   app.innerHTML = `
     <div class="center-screen">
       <div class="card" style="width:360px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          ${kgLogoMarkHtml(32)}
+          <div>
+            <div style="font-weight:700;font-size:14px">Kaluf &amp; Gomes</div>
+            <div class="muted" style="font-size:12px">Pesquisas de Satisfação</div>
+          </div>
+        </div>
         <h2>Painel administrativo</h2>
         <p class="subtitle" style="margin-bottom:20px">Acesse com seu e-mail e senha do Firebase Auth.</p>
         <label>E-mail</label>
@@ -469,10 +502,7 @@ async function renderAdminDashboard() {
 
   app.innerHTML = `
     <div class="wrap wide">
-      <div class="top-bar">
-        <div class="logo">Pesquisas de Satisfação · Admin</div>
-        <button class="secondary" id="logout-btn">Sair</button>
-      </div>
+      ${kgTopBarHtml(true)}
       ${adminNavHtml("empresas")}
       <div class="row between" style="margin-bottom:20px">
         <h1 style="margin:0">Empresas</h1>
@@ -520,10 +550,8 @@ function renderEmpresaForm(existing) {
 
   app.innerHTML = `
     <div class="wrap">
-      <div class="top-bar">
-        <div class="logo">Pesquisas de Satisfação · Admin</div>
-        <a href="#/admin"><button class="secondary">Voltar</button></a>
-      </div>
+      ${kgTopBarHtml(false)}
+      <div class="row" style="margin-bottom:4px"><a href="#/admin"><button class="secondary">Voltar</button></a></div>
       <h1>${isEdit ? "Editar empresa" : "Nova empresa"}</h1>
       <p class="subtitle">${isEdit ? "Atualize a logo, a cor ou o nome da empresa." : "Cria a página pública de pesquisa de satisfação para o cliente."}</p>
       <div class="card">
@@ -650,20 +678,18 @@ async function renderRespostas(slug) {
     </div>
   `).join("");
 
-  const obsRows = responses.filter(r => r.observation).map(r => `
+  const historicoRows = responses.map(r => `
     <tr>
+      <td class="muted" style="white-space:nowrap">${fmtDate(r.createdAt)}</td>
       <td>${likertOf(r.score).emoji} ${likertOf(r.score).label}</td>
-      <td>${escapeHtml(r.observation)}</td>
-      <td class="muted">${fmtDate(r.createdAt)}</td>
+      <td>${r.observation ? escapeHtml(r.observation) : `<span class="muted">—</span>`}</td>
     </tr>
   `).join("");
 
   app.innerHTML = `
     <div class="wrap wide">
-      <div class="top-bar">
-        <div class="logo">Pesquisas de Satisfação · Admin</div>
-        <a href="#/admin"><button class="secondary">Voltar</button></a>
-      </div>
+      ${kgTopBarHtml(false)}
+      <div class="row" style="margin-bottom:4px"><a href="#/admin"><button class="secondary">Voltar</button></a></div>
       <h1>${escapeHtml(company.name)}</h1>
       <p class="subtitle">${window.location.origin}${window.location.pathname}#/empresa/${slug}</p>
 
@@ -679,9 +705,9 @@ async function renderRespostas(slug) {
       </div>
 
       <div class="card" style="padding:0">
-        <div style="padding:20px 20px 0"><h2>Observações</h2></div>
-        ${obsRows ? `<table style="padding:0 20px 20px"><thead><tr><th>Nota</th><th>Observação</th><th>Data</th></tr></thead><tbody>${obsRows}</tbody></table>`
-          : `<p class="muted" style="padding:0 20px 20px">Nenhuma observação registrada ainda.</p>`}
+        <div style="padding:20px 20px 0"><h2>Histórico de respostas</h2><p class="muted" style="margin:0 0 8px;font-size:12px">Data e hora de cada envio, mais recente primeiro.</p></div>
+        ${historicoRows ? `<table style="padding:0 20px 20px"><thead><tr><th>Data e hora</th><th>Nota</th><th>Observação</th></tr></thead><tbody>${historicoRows}</tbody></table>`
+          : `<p class="muted" style="padding:0 20px 20px">Nenhuma resposta registrada ainda.</p>`}
       </div>
     </div>
   `;
@@ -971,18 +997,40 @@ async function renderPosVendaResultados(slug) {
       </div>`;
   }).join("");
 
+  const historicoRows = responses.map(r => {
+    const a = r.answers || {};
+    return `
+      <tr>
+        <td class="muted" style="white-space:nowrap">${fmtDate(r.createdAt)}</td>
+        <td>${a.q1 ?? "-"}</td>
+        <td>${a.q2 ?? "-"}</td>
+        <td>${a.q3 ? escapeHtml(a.q3) : "-"}</td>
+        <td>${a.q4 ?? "-"}</td>
+        <td>${a.q5 ? escapeHtml(a.q5) : "-"}</td>
+        <td>${a.q6 ?? "-"}</td>
+        <td>${a.q7 ? escapeHtml(a.q7) : `<span class="muted">—</span>`}</td>
+      </tr>`;
+  }).join("");
+
   app.innerHTML = `
     <div class="wrap wide">
-      <div class="top-bar">
-        <div class="logo">Pesquisas de Satisfação · Admin</div>
-        <a href="#/admin"><button class="secondary">Voltar</button></a>
-      </div>
+      ${kgTopBarHtml(false)}
+      <div class="row" style="margin-bottom:4px"><a href="#/admin"><button class="secondary">Voltar</button></a></div>
       <h1>${escapeHtml(company.name)} — Pós-venda</h1>
       <p class="subtitle">${window.location.origin}${window.location.pathname}#/empresa/${slug}/pos-venda</p>
       <div class="stat-grid">
         <div class="stat"><div class="num">${total}</div><div class="lbl">Respostas</div></div>
       </div>
       ${total === 0 ? `<div class="card"><p class="muted">Nenhuma resposta registrada ainda.</p></div>` : blocks}
+
+      <div class="card" style="padding:0;overflow-x:auto">
+        <div style="padding:20px 20px 0"><h2>Histórico de respostas</h2><p class="muted" style="margin:0 0 8px;font-size:12px">Data e hora de cada envio, mais recente primeiro.</p></div>
+        ${historicoRows ? `
+        <table style="padding:0 20px 20px;min-width:720px">
+          <thead><tr><th>Data e hora</th><th>Q1★</th><th>Q2★</th><th>Q3</th><th>Q4★</th><th>Q5</th><th>Q6 (0-10)</th><th>Q7</th></tr></thead>
+          <tbody>${historicoRows}</tbody>
+        </table>` : `<p class="muted" style="padding:0 20px 20px">Nenhuma resposta registrada ainda.</p>`}
+      </div>
     </div>
   `;
 }
@@ -1002,6 +1050,12 @@ function downloadCsv(filename, rows) {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+function downloadXlsx(filename, rows) {
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Respostas");
+  XLSX.writeFile(wb, filename);
+}
 function splitDateTime(ts) {
   if (!ts) return ["-", "-"];
   const d = ts.toDate ? ts.toDate() : new Date(ts);
@@ -1019,13 +1073,10 @@ async function renderExportar() {
 
   app.innerHTML = `
     <div class="wrap wide">
-      <div class="top-bar">
-        <div class="logo">Pesquisas de Satisfação · Admin</div>
-        <button class="secondary" id="logout-btn">Sair</button>
-      </div>
+      ${kgTopBarHtml(true)}
       ${adminNavHtml("exportar")}
       <h1>Exportar dados</h1>
-      <p class="subtitle">Baixe as respostas em CSV (abre direto no Excel). Cada linha vem com data e hora do envio.</p>
+      <p class="subtitle">Baixe as respostas em Excel (.xlsx) ou CSV. Cada linha vem com a data e a hora exatas do envio.</p>
 
       ${companies.length === 0 ? `<div class="card"><p class="muted">Cadastre uma empresa primeiro.</p></div>` : `
       <div class="card">
@@ -1039,55 +1090,68 @@ async function renderExportar() {
           <option value="posvenda">Pós-venda / Experiência</option>
         </select>
         <div class="error" id="exp-error" style="display:none"></div>
-        <button id="exp-btn">Exportar CSV</button>
+        <div class="row">
+          <button id="exp-btn-xlsx">Exportar Excel (.xlsx)</button>
+          <button id="exp-btn-csv" class="secondary">Exportar CSV</button>
+        </div>
       </div>`}
     </div>
   `;
 
   document.getElementById("logout-btn").onclick = async () => { await signOut(auth); navigate("#/login"); };
-  const btn = document.getElementById("exp-btn");
-  if (!btn) return;
+  const btnXlsx = document.getElementById("exp-btn-xlsx");
+  if (!btnXlsx) return;
+  const btnCsv = document.getElementById("exp-btn-csv");
+  const errEl = document.getElementById("exp-error");
 
-  btn.onclick = async () => {
+  // Busca as respostas no Firestore e monta a matriz de linhas (cabeçalho + dados),
+  // já com Data e Hora em colunas separadas. Reaproveitada pelos dois formatos.
+  async function buildRows() {
     const slug = document.getElementById("exp-empresa").value;
     const tipo = document.getElementById("exp-tipo").value;
-    const errEl = document.getElementById("exp-error");
+    const company = companies.find(c => c.slug === slug);
+    if (tipo === "nps") {
+      const snap = await getDocs(query(collection(db, "companies", slug, "responses"), orderBy("createdAt", "asc")));
+      const rows = [["Data", "Hora", "Nota (1-5)", "Classificação", "Observação"]];
+      snap.forEach(d => {
+        const r = d.data();
+        const [data, hora] = splitDateTime(r.createdAt);
+        rows.push([data, hora, r.score, likertOf(r.score).label, r.observation || ""]);
+      });
+      return { rows, filenameBase: `${slug}-nps`, empty: rows.length === 1, msg: "Ainda não há respostas de NPS para essa empresa." };
+    } else {
+      const snap = await getDocs(query(collection(db, "companies", slug, "posvenda_responses"), orderBy("createdAt", "asc")));
+      const headers = ["Data", "Hora", ...POSVENDA_QUESTIONS.map((q, i) => `Q${i+1} - ${fillCompanyName(q.label, company.name)}`)];
+      const rows = [headers];
+      snap.forEach(d => {
+        const r = d.data();
+        const [data, hora] = splitDateTime(r.createdAt);
+        const answers = r.answers || {};
+        rows.push([data, hora, ...POSVENDA_QUESTIONS.map(q => answers[q.id] !== undefined ? answers[q.id] : "")]);
+      });
+      return { rows, filenameBase: `${slug}-pos-venda`, empty: rows.length === 1, msg: "Ainda não há respostas de pós-venda para essa empresa." };
+    }
+  }
+
+  async function handleExport(btn, download, ext) {
     errEl.style.display = "none";
+    const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = "Gerando arquivo...";
     try {
-      const company = companies.find(c => c.slug === slug);
-      if (tipo === "nps") {
-        const snap = await getDocs(query(collection(db, "companies", slug, "responses"), orderBy("createdAt", "asc")));
-        const rows = [["Data", "Hora", "Nota (1-5)", "Classificação", "Observação"]];
-        snap.forEach(d => {
-          const r = d.data();
-          const [data, hora] = splitDateTime(r.createdAt);
-          rows.push([data, hora, r.score, likertOf(r.score).label, r.observation || ""]);
-        });
-        if (rows.length === 1) { errEl.textContent = "Ainda não há respostas de NPS para essa empresa."; errEl.style.display = "block"; }
-        else downloadCsv(`${slug}-nps.csv`, rows);
-      } else {
-        const snap = await getDocs(query(collection(db, "companies", slug, "posvenda_responses"), orderBy("createdAt", "asc")));
-        const headers = ["Data", "Hora", ...POSVENDA_QUESTIONS.map((q, i) => `Q${i+1} - ${fillCompanyName(q.label, company.name)}`)];
-        const rows = [headers];
-        snap.forEach(d => {
-          const r = d.data();
-          const [data, hora] = splitDateTime(r.createdAt);
-          const answers = r.answers || {};
-          const line = [data, hora, ...POSVENDA_QUESTIONS.map(q => answers[q.id] !== undefined ? answers[q.id] : "")];
-          rows.push(line);
-        });
-        if (rows.length === 1) { errEl.textContent = "Ainda não há respostas de pós-venda para essa empresa."; errEl.style.display = "block"; }
-        else downloadCsv(`${slug}-pos-venda.csv`, rows);
-      }
+      const { rows, filenameBase, empty, msg } = await buildRows();
+      if (empty) { errEl.textContent = msg; errEl.style.display = "block"; }
+      else download(`${filenameBase}.${ext}`, rows);
     } catch (e) {
       errEl.textContent = "Não foi possível exportar. Tente novamente.";
       errEl.style.display = "block";
     }
     btn.disabled = false;
-    btn.textContent = "Exportar CSV";
-  };
+    btn.textContent = originalText;
+  }
+
+  btnXlsx.onclick = () => handleExport(btnXlsx, downloadXlsx, "xlsx");
+  btnCsv.onclick = () => handleExport(btnCsv, downloadCsv, "csv");
 }
 
 function escapeHtml(str) {
