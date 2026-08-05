@@ -303,6 +303,37 @@ const POSVENDA_QUESTIONS = [
 ];
 function fillCompanyName(str, name) { return str.replace("{empresa}", name); }
 
+// Mantém a tela acesa enquanto a página pública estiver aberta (útil pra
+// tablet/totem fixo na loja). O navegador libera o wake lock quando a aba
+// fica em segundo plano, então readquirimos ao voltar o foco.
+let _wakeLock = null;
+async function keepScreenAwake() {
+  if (!("wakeLock" in navigator)) return;
+  try {
+    _wakeLock = await navigator.wakeLock.request("screen");
+  } catch (e) { /* alguns navegadores bloqueiam sem interação do usuário; sem problema */ }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") keepScreenAwake();
+});
+
+// Busca a empresa com novas tentativas em caso de falha de rede (comum em
+// tablets fixos que passam o dia ligados numa conexão instável), em vez de
+// deixar a tela travada com "Página não encontrada".
+async function fetchCompanyWithRetry(slug, onRetrying) {
+  let attempt = 0;
+  while (true) {
+    try {
+      const snap = await getDoc(doc(db, "companies", slug));
+      return snap.exists() ? snap.data() : null;
+    } catch (e) {
+      attempt++;
+      if (onRetrying) onRetrying(attempt);
+      await new Promise(r => setTimeout(r, Math.min(5000 * attempt, 20000)));
+    }
+  }
+}
+
 // Marca geométrica "bowtie" da Kaluf & Gomes em SVG (dourado sobre navy).
 function kgLogoMarkHtml(size = 22) {
   return `
@@ -716,12 +747,14 @@ async function renderRespostas(slug) {
 // ------------------------- PÁGINA PÚBLICA --------------------------------
 async function renderPublicSurvey(slug) {
   app.innerHTML = `<div class="center-screen"><p class="muted">Carregando...</p></div>`;
-  const compSnap = await getDoc(doc(db, "companies", slug));
-  if (!compSnap.exists()) {
+  keepScreenAwake();
+  const company = await fetchCompanyWithRetry(slug, attempt => {
+    app.innerHTML = `<div class="center-screen"><p class="muted">Sem conexão, tentando reconectar${".".repeat(Math.min(attempt,3))}</p></div>`;
+  });
+  if (!company) {
     app.innerHTML = `<div class="center-screen"><p>Página não encontrada.</p></div>`;
     return;
   }
-  const company = compSnap.data();
   document.documentElement.style.setProperty("--primary", company.primaryColor || "#2E2B28");
   document.title = "Pesquisa de satisfação — " + company.name;
 
@@ -791,12 +824,14 @@ async function renderPublicSurvey(slug) {
 // ------------------------- PÁGINA PÚBLICA: PÓS-VENDA ---------------------
 async function renderPublicPosVenda(slug) {
   app.innerHTML = `<div class="center-screen"><p class="muted">Carregando...</p></div>`;
-  const compSnap = await getDoc(doc(db, "companies", slug));
-  if (!compSnap.exists()) {
+  keepScreenAwake();
+  const company = await fetchCompanyWithRetry(slug, attempt => {
+    app.innerHTML = `<div class="center-screen"><p class="muted">Sem conexão, tentando reconectar${".".repeat(Math.min(attempt,3))}</p></div>`;
+  });
+  if (!company) {
     app.innerHTML = `<div class="center-screen"><p>Página não encontrada.</p></div>`;
     return;
   }
-  const company = compSnap.data();
   document.documentElement.style.setProperty("--primary", company.primaryColor || "#2E2B28");
   document.title = "Pesquisa de experiência — " + company.name;
 
@@ -1157,6 +1192,20 @@ async function renderExportar() {
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
+
+// Recarrega a página automaticamente uma vez por dia, de madrugada, só nas
+// páginas públicas de pesquisa — útil pra tablet/totem que fica ligado
+// 24h, evitando qualquer travamento acumulado de sessão muito longa.
+let _dailyReloadDone = false;
+setInterval(() => {
+  const isPublicPage = window.location.hash.startsWith("#/empresa/");
+  const hour = new Date().getHours();
+  if (isPublicPage && hour === 4 && !_dailyReloadDone) {
+    _dailyReloadDone = true;
+    window.location.reload();
+  }
+  if (hour !== 4) _dailyReloadDone = false;
+}, 60000);
 
 render();
 </script>
